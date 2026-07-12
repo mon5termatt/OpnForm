@@ -3,6 +3,7 @@ const TIER_ORDER = {
   pro: 1,
   business: 2,
   enterprise: 3,
+  self_hosted: 4,
 }
 
 export function useWorkspaceAbilities() {
