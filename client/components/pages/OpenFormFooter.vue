@@ -210,7 +210,7 @@
               v-if="isLicenseBypass"
               class="block mt-1 text-xs text-neutral-500"
             >
-              De-enshittified edition — branding gates left in 2026, dignity restored locally.
+              De-enshittified edition — basics stay free on self-hosted.
             </span>
           </div>
         </div>
