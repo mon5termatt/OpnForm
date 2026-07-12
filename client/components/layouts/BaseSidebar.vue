@@ -68,10 +68,19 @@
       :class="{ 'hidden': !isMobileMenuOpen, 'sm:block': true }"
     >
       <slot name="footer" :isMobileMenuOpen="isMobileMenuOpen">
-        <p class="text-xs text-neutral-400 text-center">
-          <span class="font-bold"><NuxtLink class="text-neutral-400" :to="{ name: 'home' }">OpnForm</NuxtLink></span>
-          <span class="text-neutral-500" v-if="version"> v{{ version }}</span>
-        </p>
+        <div class="text-xs text-neutral-400 text-center space-y-1">
+          <p>
+            <span class="font-bold"><NuxtLink class="text-neutral-400" :to="{ name: 'home' }">OpnForm</NuxtLink></span>
+            <span class="text-neutral-500" v-if="version"> v{{ version }}</span>
+          </p>
+          <p
+            v-if="isLicenseBypass"
+            class="text-[10px] leading-tight text-neutral-400/90 px-1"
+            title="This fork refuses to paywall basics"
+          >
+            De-enshittified edition — branding gates left in 2026, dignity restored locally.
+          </p>
+        </div>
       </slot>
     </div>
   </aside>
@@ -82,6 +91,7 @@ const slots = useSlots()
 
 const isMobileMenuOpen = ref(false)
 const version = computed(() => useFeatureFlag('version'))
+const { isLicenseBypass } = useInstanceLicense()
 
 // Check if header slot has content
 const hasHeaderContent = computed(() => {

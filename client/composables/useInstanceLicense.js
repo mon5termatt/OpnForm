@@ -53,6 +53,13 @@ export function useInstanceLicense() {
     return licenseStatus.value !== null && licenseStatus.value !== 'invalid'
   })
 
+  // Detect this fork's always-on LicenseService bypass marker.
+  const isLicenseBypass = computed(() => {
+    if (!isSelfHosted.value || !licenseData.value) return false
+    return licenseData.value.cloud_license_id === 'local-bypass'
+      || licenseData.value.activation_id === 'local-bypass'
+  })
+
   return {
     isSelfHosted,
     licenseStatus,
@@ -63,5 +70,6 @@ export function useInstanceLicense() {
     isExpired,
     isActivationLimitReached,
     hasLicense,
+    isLicenseBypass,
   }
 }

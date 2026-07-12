@@ -206,6 +206,12 @@
             <span v-if="version" class="block mt-1">
               Version {{ version }}
             </span>
+            <span
+              v-if="isLicenseBypass"
+              class="block mt-1 text-xs text-neutral-500"
+            >
+              De-enshittified edition — branding gates left in 2026, dignity restored locally.
+            </span>
           </div>
         </div>
 
@@ -274,6 +280,7 @@ const currYear = ref(new Date().getFullYear())
 
 // Use the reactive version for proper template reactivity
 const version = computed(() => useFeatureFlag("version"))
+const { isLicenseBypass } = useInstanceLicense()
 
 const socialLinks = computed(() => [
   { label: "X", href: opnformConfig.links.twitter, icon: "i-simple-icons-x" },
