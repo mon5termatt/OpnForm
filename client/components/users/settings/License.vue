@@ -1,61 +1,46 @@
 <template>
   <div class="space-y-6">
-    <!-- Bypass fork: don't pretend this is a real SaaS subscription page -->
+    <!-- Bypass fork: honest copy, same visual language as settings -->
     <template v-if="isLicenseBypass">
-      <div class="license-bypass relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 text-neutral-100 shadow-lg">
-        <div class="license-bypass__grid pointer-events-none absolute inset-0 opacity-[0.35]" aria-hidden="true" />
-        <div class="license-bypass__glow pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-lime-400/20 blur-3xl" aria-hidden="true" />
-        <div class="license-bypass__glow pointer-events-none absolute -bottom-24 -left-10 h-48 w-48 rounded-full bg-cyan-400/15 blur-3xl" aria-hidden="true" />
-
-        <div class="relative space-y-5 p-5 sm:p-6">
-          <div class="flex flex-wrap items-start justify-between gap-4">
-            <div class="space-y-2 max-w-xl">
-              <p class="font-mono text-[10px] uppercase tracking-[0.28em] text-lime-300/90">
-                Local sovereignty protocol
-              </p>
-              <h3 class="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                De-enshittified Edition
-              </h3>
-              <p class="text-sm leading-relaxed text-neutral-300">
-                This instance refuses to phone home for permission to use software you already host.
-                Branding gates, seat counters, and “please upgrade” theater: left on the curb in 2026.
-              </p>
-            </div>
-            <div class="shrink-0 rounded-full border border-lime-300/40 bg-lime-300/10 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-lime-200">
-              license://local-bypass
-            </div>
-          </div>
-
-          <div class="rounded-lg border border-dashed border-lime-300/30 bg-lime-300/5 p-4">
-            <p class="font-mono text-[11px] uppercase tracking-wider text-lime-200/90">Reclaimed without invoice</p>
-            <ul class="mt-3 grid gap-2 sm:grid-cols-2">
-              <li
-                v-for="feature in liberatedFeatures"
-                :key="feature"
-                class="flex items-center gap-2 text-sm text-neutral-200"
-              >
-                <Icon name="i-heroicons-check-badge" class="h-4 w-4 shrink-0 text-lime-300" />
-                <span>{{ feature }}</span>
-              </li>
-            </ul>
-          </div>
-
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p class="text-xs leading-relaxed text-neutral-400 max-w-md">
-              Status: <span class="text-lime-300">active forever-ish</span>.
-              Billing portal: <span class="line-through decoration-neutral-500">not applicable</span>.
-              Dignity: <span class="text-cyan-300">restored locally</span>.
-            </p>
-            <UButton
-              color="neutral"
-              variant="outline"
-              icon="i-heroicons-face-smile"
-              @click="toastLiberation"
-            >
-              Celebrate anyway
-            </UButton>
-          </div>
+      <div class="space-y-4">
+        <div>
+          <h3 class="text-lg font-medium text-neutral-900">Self-hosted license</h3>
+          <p class="mt-1 text-sm text-neutral-500">
+            This instance does not require an upstream Enterprise key.
+          </p>
         </div>
+
+        <div class="rounded-lg border border-neutral-200 bg-white p-4 sm:p-5 space-y-4">
+          <div class="flex items-start gap-3">
+            <div class="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+              <Icon name="i-heroicons-check-circle" class="h-5 w-5" />
+            </div>
+            <div class="space-y-2">
+              <p class="text-sm font-semibold text-neutral-900">
+                Features unlocked locally
+              </p>
+              <p class="text-sm leading-relaxed text-neutral-600">
+                Too many vendors now charge for basics that used to ship free with self-hosted software—removing branding, connecting Slack or Discord, using your own domain, adding a few seats.
+                This fork rejects that pattern. Enterprise-class capabilities stay available on your own hardware, without a license server deciding what you are allowed to run.
+              </p>
+            </div>
+          </div>
+
+          <ul class="grid gap-2 sm:grid-cols-2 border-t border-neutral-100 pt-4">
+            <li
+              v-for="feature in unlockedFeatures"
+              :key="feature"
+              class="flex items-center gap-2 text-sm text-neutral-700"
+            >
+              <Icon name="i-heroicons-check" class="h-4 w-4 shrink-0 text-emerald-600" />
+              <span>{{ feature }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <p class="text-xs text-neutral-500">
+          No subscription portal. No phone-home license check. Just software you host.
+        </p>
       </div>
     </template>
 
@@ -192,26 +177,14 @@ const licenseKeyForm = useForm({
   license_key: '',
 })
 
-const liberatedFeatures = [
-  'No OpnForm branding tax',
-  'Custom domains without begging',
-  'Slack / Discord / SMTP unlocked',
-  'Seat limits politely ignored',
-  'Custom code & white-label bits',
-  'Zero phone-home license drama',
+const unlockedFeatures = [
+  'Remove OpnForm branding',
+  'Custom domains',
+  'Slack, Discord & SMTP',
+  'No artificial seat ceiling',
+  'Custom code & white-label options',
+  'Runs without a license server',
 ]
-
-const celebrationLines = [
-  'Invoice amount: $0.00 — paid in spite.',
-  'Congratulations. Capitalism failed to reach this container.',
-  'Enterprise features acquired the old-fashioned way: by reading the source.',
-  'Your wallet remains un-enshittified.',
-]
-
-const toastLiberation = () => {
-  const line = celebrationLines[Math.floor(Math.random() * celebrationLines.length)]
-  alert.success(line)
-}
 
 const openPurchase = () => {
   openSubscriptionModal({ plan: 'self_hosted' })
@@ -276,13 +249,3 @@ const activateLicense = () => {
   })
 }
 </script>
-
-<style scoped>
-.license-bypass__grid {
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 24px 24px;
-  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
-}
-</style>

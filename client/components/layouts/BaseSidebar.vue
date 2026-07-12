@@ -78,7 +78,7 @@
             class="text-[10px] leading-tight text-neutral-400/90 px-1"
             title="This fork refuses to paywall basics"
           >
-            De-enshittified edition — branding gates left in 2026, dignity restored locally.
+            De-enshittified edition — basics stay free on self-hosted.
           </p>
         </div>
       </slot>
