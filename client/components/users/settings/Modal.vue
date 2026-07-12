@@ -49,6 +49,15 @@
     </SettingsModalPage>
 
     <SettingsModalPage
+      v-if="canManageLicense && isLicenseBypass"
+      id="upstream-updates"
+      label="Updates"
+      icon="i-heroicons-arrow-path"
+    >
+      <LazyUsersSettingsUpstreamUpdates />
+    </SettingsModalPage>
+
+    <SettingsModalPage
       v-if="!isSelfHosted && user && (user.has_customer_id || user.active_license)"
       id="billing"
       label="Billing"
@@ -77,6 +86,7 @@ const { current: workspace } = useCurrentWorkspace()
 const { data: user } = useAuth().user()
 const isSelfHosted = computed(() => useFeatureFlag('self_hosted'))
 const canManageLicense = computed(() => isSelfHosted.value && !!workspace.value?.is_admin)
+const { isLicenseBypass } = useInstanceLicense()
 
 // Modal state is now derived from the presence of an active tab
 const isOpen = computed({

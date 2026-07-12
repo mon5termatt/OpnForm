@@ -77,8 +77,8 @@
             <button
               type="button"
               class="text-neutral-400/90 hover:text-neutral-600 underline-offset-2 hover:underline inline-flex items-center justify-center gap-1"
-              title="Open license settings"
-              @click="openUserSettings('license')"
+              :title="hasUpstreamUpdate ? 'Upstream update available' : 'Open license settings'"
+              @click="openUserSettings(hasUpstreamUpdate ? 'upstream-updates' : 'license')"
             >
               De-enshittified edition
               <span

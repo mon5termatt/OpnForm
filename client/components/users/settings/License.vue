@@ -38,78 +38,17 @@
           </ul>
         </div>
 
-        <div
-          class="rounded-lg border p-4 sm:p-5 space-y-3"
-          :class="hasUpdate ? 'border-amber-200 bg-amber-50/50' : 'border-neutral-200 bg-white'"
-        >
-          <div class="flex items-start gap-3">
-            <div
-              class="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full"
-              :class="hasUpdate ? 'bg-amber-100 text-amber-700' : 'bg-neutral-100 text-neutral-500'"
-            >
-              <Icon
-                :name="hasUpdate ? 'i-heroicons-arrow-up-circle' : 'i-heroicons-cloud-arrow-down'"
-                class="h-5 w-5"
-              />
-            </div>
-            <div class="min-w-0 flex-1 space-y-1">
-              <p class="text-sm font-semibold text-neutral-900">
-                Upstream OpnForm updates
-              </p>
-              <p class="text-sm text-neutral-600">
-                This fork tracks upstream releases manually. When OpnForm publishes a new version, merge their changes into your fork and rebuild your images.
-              </p>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-neutral-700">
-            <span>
-              Running
-              <span class="font-medium text-neutral-900">{{ currentVersion ? `v${currentVersion}` : 'unknown' }}</span>
-            </span>
-            <span v-if="latestVersion">
-              Latest upstream
-              <span class="font-medium text-neutral-900">v{{ latestVersion }}</span>
-            </span>
-            <span v-if="isLoading" class="text-neutral-500">Checking…</span>
-            <span v-else-if="hasUpdate" class="font-medium text-amber-800">Update available</span>
-            <span v-else-if="isUpToDate" class="text-emerald-700">Up to date with upstream</span>
-            <span v-else-if="updateError" class="text-red-600">{{ updateError }}</span>
-          </div>
-
-          <div class="flex flex-wrap gap-2">
-            <UButton
-              v-if="hasUpdate"
-              color="primary"
-              size="sm"
-              icon="i-heroicons-arrow-top-right-on-square"
-              :href="compareUrl"
-              target="_blank"
-            >
-              View changes since v{{ currentVersion }}
-            </UButton>
-            <UButton
-              color="neutral"
-              variant="outline"
-              size="sm"
-              icon="i-heroicons-tag"
-              :href="releasesUrl"
-              target="_blank"
-            >
-              Upstream releases
-            </UButton>
-            <UButton
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              icon="i-heroicons-arrow-path"
-              :loading="isLoading"
-              @click="refreshUpstreamCheck"
-            >
-              Check again
-            </UButton>
-          </div>
-        </div>
+        <p class="text-xs leading-relaxed text-neutral-500 border border-neutral-200 rounded-lg bg-neutral-50 px-3 py-2.5">
+          This is an unofficial fork. Enterprise license checks are bypassed locally so self-hosted basics stay available.
+          OpnForm’s Enterprise terms still apply to proprietary Enterprise code if you use those features in production.
+          For official licensing, see
+          <a
+            href="https://docs.opnform.com/deployment/self-hosted-license"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline underline-offset-2 hover:text-neutral-700"
+          >OpnForm’s docs</a>.
+        </p>
 
         <div class="flex flex-wrap items-center gap-3">
           <p class="text-xs text-neutral-500">
@@ -256,18 +195,6 @@ const {
   isLicenseBypass,
 } = useInstanceLicense()
 
-const {
-  currentVersion,
-  latestVersion,
-  hasUpdate,
-  isUpToDate,
-  isLoading,
-  error: updateError,
-  compareUrl,
-  releasesUrl,
-  check: checkUpstream,
-} = useUpstreamUpdateCheck()
-
 const activating = ref(false)
 const managingSubscription = ref(false)
 const licenseKeyForm = useForm({
@@ -288,22 +215,6 @@ const forkIssuesUrl = computed(() => {
   const base = String(runtimeConfig.public.githubRepoUrl || '').replace(/\/$/, '')
   return `${base}/issues`
 })
-
-onMounted(() => {
-  if (isLicenseBypass.value) {
-    checkUpstream()
-  }
-})
-
-watch(isLicenseBypass, (enabled) => {
-  if (enabled) {
-    checkUpstream()
-  }
-})
-
-const refreshUpstreamCheck = () => {
-  checkUpstream({ force: true })
-}
 
 const openPurchase = () => {
   openSubscriptionModal({ plan: 'self_hosted' })
