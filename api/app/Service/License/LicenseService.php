@@ -20,20 +20,13 @@ class LicenseService
 
     /**
      * Check the installed license with caching and outage grace.
+     *
+     * This fork always treats the instance as licensed so self-hosted
+     * enterprise features and seat limits are unlocked without a key.
      */
     public function checkLicense(): LicenseCheckResult
     {
-        $licenseKey = $this->getLicenseKey();
-        if (!$licenseKey) {
-            return LicenseCheckResult::invalid();
-        }
-
-        $cached = Cache::get(self::CACHE_KEY);
-        if ($cached instanceof LicenseCheckResult) {
-            return $cached;
-        }
-
-        return $this->refreshInstalledLicense($licenseKey);
+        return $this->alwaysLicensedResult();
     }
 
     /**
@@ -44,11 +37,10 @@ class LicenseService
         Cache::forget(self::CACHE_KEY);
         Cache::forget('feature_flags');
 
-        $result = $this->validateCandidateLicense($licenseKey);
-        if ($result->isActive()) {
-            $this->storeLicenseState($licenseKey, $result);
-            $this->cacheResult($result);
-        }
+        // Keep the activation UI working, but access does not depend on a real key.
+        $result = $this->alwaysLicensedResult();
+        $this->storeLicenseState($licenseKey, $result);
+        $this->cacheResult($result);
 
         return $result;
     }
@@ -143,12 +135,7 @@ class LicenseService
      */
     public function hasFeature(string $licenseFeatureKey): bool
     {
-        $result = $this->checkLicense();
-        if (!$result->isActive() || !$result->features) {
-            return false;
-        }
-
-        return !empty($result->features[$licenseFeatureKey]);
+        return true;
     }
 
     /**
@@ -157,36 +144,32 @@ class LicenseService
      */
     public function hasAppFeature(string $appFeature): bool
     {
-        $result = $this->checkLicense();
-        if (!$result->isActive() || !$result->features) {
-            return false;
-        }
-
-        $mapping = config('plans.self_hosted_features', []);
-        foreach ($mapping as $licenseFeature => $appFeatures) {
-            if (in_array($appFeature, (array) $appFeatures, true)) {
-                if (!empty($result->features[$licenseFeature])) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return true;
     }
 
     public function hasPaidLicense(): bool
     {
-        $cached = Cache::get(self::CACHE_KEY);
-        if ($cached instanceof LicenseCheckResult) {
-            return $cached->isActive();
-        }
+        return true;
+    }
 
-        $stored = $this->getStoredLicense();
-        if (!$stored || !$this->getLicenseKey()) {
-            return false;
-        }
-
-        return in_array($stored['status'] ?? null, ['active', 'grace'], true);
+    private function alwaysLicensedResult(): LicenseCheckResult
+    {
+        return new LicenseCheckResult(
+            status: 'active',
+            features: [
+                'sso' => true,
+                'multiOrg' => true,
+                'whitelabel' => true,
+                'custom_smtp' => true,
+                'audit_logs' => true,
+                'external_storage' => true,
+                'custom_code' => true,
+            ],
+            lastChecked: now(),
+            expiresAt: now()->addYears(100),
+            cloudLicenseId: 'local-bypass',
+            activationId: 'local-bypass',
+        );
     }
 
     private function validateCandidateLicense(string $licenseKey): LicenseCheckResult
