@@ -26,17 +26,6 @@
             </div>
           </div>
 
-          <div class="grid gap-3 sm:grid-cols-3">
-            <div
-              v-for="stat in bypassStats"
-              :key="stat.label"
-              class="rounded-lg border border-white/10 bg-white/5 px-3 py-3 backdrop-blur-sm"
-            >
-              <p class="font-mono text-[10px] uppercase tracking-wider text-neutral-400">{{ stat.label }}</p>
-              <p class="mt-1 text-sm font-medium text-white">{{ stat.value }}</p>
-            </div>
-          </div>
-
           <div class="rounded-lg border border-dashed border-lime-300/30 bg-lime-300/5 p-4">
             <p class="font-mono text-[11px] uppercase tracking-wider text-lime-200/90">Reclaimed without invoice</p>
             <ul class="mt-3 grid gap-2 sm:grid-cols-2">
@@ -57,24 +46,14 @@
               Billing portal: <span class="line-through decoration-neutral-500">not applicable</span>.
               Dignity: <span class="text-cyan-300">restored locally</span>.
             </p>
-            <div class="flex flex-wrap gap-2">
-              <UButton
-                color="neutral"
-                variant="outline"
-                icon="i-heroicons-face-smile"
-                @click="toastLiberation"
-              >
-                Celebrate anyway
-              </UButton>
-              <UButton
-                color="neutral"
-                variant="soft"
-                icon="i-heroicons-question-mark-circle"
-                @click="crisp.openHelpdeskArticle('self-hosted-license-3ihg7e')"
-              >
-                Official docs (for the curious)
-              </UButton>
-            </div>
+            <UButton
+              color="neutral"
+              variant="outline"
+              icon="i-heroicons-face-smile"
+              @click="toastLiberation"
+            >
+              Celebrate anyway
+            </UButton>
           </div>
         </div>
       </div>
@@ -205,7 +184,6 @@ const {
   isExpired,
   isActivationLimitReached,
   isLicenseBypass,
-  expiresAt,
 } = useInstanceLicense()
 
 const activating = ref(false)
@@ -222,19 +200,6 @@ const liberatedFeatures = [
   'Custom code & white-label bits',
   'Zero phone-home license drama',
 ]
-
-const bypassStats = computed(() => [
-  { label: 'Status', value: 'Paywall not found' },
-  { label: 'Vendor ping', value: 'Declined' },
-  {
-    label: 'Expires',
-    value: expiresAt.value
-      ? new Date(expiresAt.value).getFullYear() >= 2100
-        ? 'Heat death of SaaS'
-        : new Date(expiresAt.value).toLocaleDateString()
-      : 'Whenever you say',
-  },
-])
 
 const celebrationLines = [
   'Invoice amount: $0.00 — paid in spite.',
