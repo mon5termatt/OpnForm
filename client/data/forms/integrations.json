@@ -14,7 +14,7 @@
     "section_name": "Notifications",
     "file_name": "SlackIntegration",
     "actions_file_name": "SlackIntegrationActions",
-    "required_tier": "pro",
+    "required_tier": "free",
     "crisp_help_page_slug": "do-you-want-to-get-notified-of-new-submissions-via-slack-21mhhh"
   },
   "discord": {
@@ -23,7 +23,7 @@
     "section_name": "Notifications",
     "file_name": "DiscordIntegration",
     "actions_file_name": "DiscordIntegrationActions",
-    "required_tier": "pro",
+    "required_tier": "free",
     "crisp_help_page_slug": "do-you-want-to-get-notified-of-new-submissions-via-discord-1b2oxcx"
   },
   "telegram": {
@@ -32,7 +32,7 @@
     "section_name": "Notifications",
     "file_name": "TelegramIntegration",
     "actions_file_name": "TelegramIntegrationActions",
-    "required_tier": "pro",
+    "required_tier": "free",
     "crisp_help_page_slug": "how-to-connect-telegram-to-your-opnform-bxqqq2"
   },
   "webhook": {

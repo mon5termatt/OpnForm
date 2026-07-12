@@ -7,7 +7,7 @@ import { useWorkspaceAbilities } from '~/composables/useWorkspaceAbilities.js'
 
 export function useFormIntegrations() {
   const queryClient = useQueryClient()
-  const { currentWorkspaceTier, tierMeetsRequirement } = useWorkspaceAbilities()
+  const { currentWorkspaceTier, tierMeetsRequirement, can } = useWorkspaceAbilities()
 
   // Static integrations data
   const integrations = ref(new Map())
@@ -19,16 +19,19 @@ export function useFormIntegrations() {
     }
   }
 
-  // Computed property for available integrations based on workspace tier and feature flags
+  // Computed property for available integrations based on workspace features/tier
   const availableIntegrations = computed(() => {
     const enrichedIntegrations = new Map()
     for (const [key, integration] of integrations.value.entries()) {
       if (useFeatureFlag(`integrations.${key}`, true)) {
         const requiredTier = integration.required_tier || 'free'
+        // Prefer feature entitlements (self-hosted license) over raw tier labels.
+        const hasIntegrationFeature = can(`integrations.${key}`)
+        const meetsTier = tierMeetsRequirement(currentWorkspaceTier.value, requiredTier)
         enrichedIntegrations.set(key, {
           ...integration,
           id: key,
-          requires_upgrade: !tierMeetsRequirement(currentWorkspaceTier.value, requiredTier),
+          requires_upgrade: requiredTier !== 'free' && !hasIntegrationFeature && !meetsTier,
         })
       }
     }
