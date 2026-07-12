@@ -74,6 +74,9 @@ class FeatureFlagsController extends Controller
             'status' => $result->status,
             'features' => $result->features,
             'expires_at' => $result->expiresAt?->format('c'),
+            // Used by the client to detect this fork's local license bypass.
+            'cloud_license_id' => $result->cloudLicenseId,
+            'activation_id' => $result->activationId,
         ];
     }
 
