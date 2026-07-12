@@ -31,6 +31,9 @@ export default {
 
     /** Cloud API base URL. Used for self-hosted license checkout from the client. */
     licenseApiEndpoint: process.env.NUXT_PUBLIC_LICENSE_API_ENDPOINT || 'https://api.opnform.com',
+
+    /** Source repository for this build (override with NUXT_PUBLIC_GITHUB_REPO_URL). */
+    githubRepoUrl: process.env.NUXT_PUBLIC_GITHUB_REPO_URL || 'https://github.com/OpnForm/OpnForm',
   },
 
   /**

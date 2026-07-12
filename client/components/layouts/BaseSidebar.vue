@@ -73,12 +73,15 @@
             <span class="font-bold"><NuxtLink class="text-neutral-400" :to="{ name: 'home' }">OpnForm</NuxtLink></span>
             <span class="text-neutral-500" v-if="version"> v{{ version }}</span>
           </p>
-          <p
-            v-if="isLicenseBypass"
-            class="text-[10px] leading-tight text-neutral-400/90 px-1"
-            title="This fork refuses to paywall basics"
-          >
-            De-enshittified edition — basics stay free on self-hosted.
+          <p v-if="isLicenseBypass" class="text-[10px] leading-tight px-1">
+            <button
+              type="button"
+              class="text-neutral-400/90 hover:text-neutral-600 underline-offset-2 hover:underline"
+              title="Open license settings"
+              @click="openUserSettings('license')"
+            >
+              De-enshittified edition
+            </button>
           </p>
         </div>
       </slot>
@@ -92,6 +95,7 @@ const slots = useSlots()
 const isMobileMenuOpen = ref(false)
 const version = computed(() => useFeatureFlag('version'))
 const { isLicenseBypass } = useInstanceLicense()
+const { openUserSettings } = useAppModals()
 
 // Check if header slot has content
 const hasHeaderContent = computed(() => {

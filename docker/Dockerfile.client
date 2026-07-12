@@ -24,6 +24,9 @@ RUN npm cache clean --force
 
 ADD ./client/ /app/
 
+ARG NUXT_PUBLIC_GITHUB_REPO_URL=https://github.com/OpnForm/OpnForm
+ENV NUXT_PUBLIC_GITHUB_REPO_URL=$NUXT_PUBLIC_GITHUB_REPO_URL
+
 ENV NODE_OPTIONS="--max-old-space-size=6144"
 # Set production mode to reduce memory usage
 ENV NODE_ENV=production
@@ -42,6 +45,8 @@ RUN --mount=type=tmpfs,target=/tmp \
 FROM node:24-alpine
 WORKDIR /app
 COPY --from=javascript-builder /app/.output/ /app/
+ARG NUXT_PUBLIC_GITHUB_REPO_URL=https://github.com/OpnForm/OpnForm
+ENV NUXT_PUBLIC_GITHUB_REPO_URL=$NUXT_PUBLIC_GITHUB_REPO_URL
 RUN ls /app/
 
 CMD [ "node", "./server/index.mjs" ]

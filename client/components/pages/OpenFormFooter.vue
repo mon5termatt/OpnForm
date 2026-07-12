@@ -206,12 +206,13 @@
             <span v-if="version" class="block mt-1">
               Version {{ version }}
             </span>
-            <span
+            <NuxtLink
               v-if="isLicenseBypass"
-              class="block mt-1 text-xs text-neutral-500"
+              :to="{ path: '/home', query: { 'user-settings': 'license' } }"
+              class="block mt-1 text-xs text-neutral-500 hover:text-neutral-700 underline-offset-2 hover:underline"
             >
-              De-enshittified edition — basics stay free on self-hosted.
-            </span>
+              De-enshittified edition
+            </NuxtLink>
           </div>
         </div>
 

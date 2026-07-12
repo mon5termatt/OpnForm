@@ -38,9 +38,21 @@
           </ul>
         </div>
 
-        <p class="text-xs text-neutral-500">
-          No subscription portal. No phone-home license check. Just software you host.
-        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <p class="text-xs text-neutral-500">
+            No subscription portal. No phone-home license check. Just software you host.
+          </p>
+          <UButton
+            color="neutral"
+            variant="outline"
+            size="sm"
+            icon="i-heroicons-bug-ant"
+            :href="forkIssuesUrl"
+            target="_blank"
+          >
+            Report an issue with the patch
+          </UButton>
+        </div>
       </div>
     </template>
 
@@ -185,6 +197,12 @@ const unlockedFeatures = [
   'Custom code & white-label options',
   'Runs without a license server',
 ]
+
+const runtimeConfig = useRuntimeConfig()
+const forkIssuesUrl = computed(() => {
+  const base = String(runtimeConfig.public.githubRepoUrl || '').replace(/\/$/, '')
+  return `${base}/issues`
+})
 
 const openPurchase = () => {
   openSubscriptionModal({ plan: 'self_hosted' })

@@ -77,6 +77,7 @@ jobs:
           push: true
           build-args: |
             APP_VERSION=${{ env.APP_VERSION }}
+            NUXT_PUBLIC_GITHUB_REPO_URL=https://github.com/${{ github.repository }}
           tags: |
             ${{ env.UI_IMAGE }}:latest
             ${{ env.UI_IMAGE }}:${{ env.IMAGE_TAG }}
