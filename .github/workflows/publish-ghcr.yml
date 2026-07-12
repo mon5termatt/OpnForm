@@ -34,8 +34,11 @@ jobs:
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "API_IMAGE=${{ env.REGISTRY }}/${OWNER}/opnform-api" >> "$GITHUB_ENV"
           echo "UI_IMAGE=${{ env.REGISTRY }}/${OWNER}/opnform-client" >> "$GITHUB_ENV"
-          echo "VERSION=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          # Docker tags can use the branch name; the in-app version should not.
+          echo "IMAGE_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
           echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          BASE_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "2.1.0")
+          echo "APP_VERSION=${BASE_VERSION}" >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -57,10 +60,10 @@ jobs:
           build-args: |
             APP_ENV=production
             COMPOSER_FLAGS=--no-dev --optimize-autoloader --no-interaction
-            APP_VERSION=${{ env.VERSION }}
+            APP_VERSION=${{ env.APP_VERSION }}
           tags: |
             ${{ env.API_IMAGE }}:latest
-            ${{ env.API_IMAGE }}:${{ env.VERSION }}
+            ${{ env.API_IMAGE }}:${{ env.IMAGE_TAG }}
             ${{ env.API_IMAGE }}:${{ env.SHORT_SHA }}
           cache-from: type=gha,scope=opnform-api
           cache-to: type=gha,mode=max,scope=opnform-api
@@ -73,10 +76,10 @@ jobs:
           platforms: linux/amd64
           push: true
           build-args: |
-            APP_VERSION=${{ env.VERSION }}
+            APP_VERSION=${{ env.APP_VERSION }}
           tags: |
             ${{ env.UI_IMAGE }}:latest
-            ${{ env.UI_IMAGE }}:${{ env.VERSION }}
+            ${{ env.UI_IMAGE }}:${{ env.IMAGE_TAG }}
             ${{ env.UI_IMAGE }}:${{ env.SHORT_SHA }}
           cache-from: type=gha,scope=opnform-client
           cache-to: type=gha,mode=max,scope=opnform-client
