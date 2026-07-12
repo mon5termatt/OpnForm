@@ -76,11 +76,16 @@
           <p v-if="isLicenseBypass" class="text-[10px] leading-tight px-1">
             <button
               type="button"
-              class="text-neutral-400/90 hover:text-neutral-600 underline-offset-2 hover:underline"
+              class="text-neutral-400/90 hover:text-neutral-600 underline-offset-2 hover:underline inline-flex items-center justify-center gap-1"
               title="Open license settings"
               @click="openUserSettings('license')"
             >
               De-enshittified edition
+              <span
+                v-if="hasUpstreamUpdate"
+                class="inline-block h-1.5 w-1.5 rounded-full bg-amber-500"
+                title="Upstream update available"
+              />
             </button>
           </p>
         </div>
@@ -96,6 +101,13 @@ const isMobileMenuOpen = ref(false)
 const version = computed(() => useFeatureFlag('version'))
 const { isLicenseBypass } = useInstanceLicense()
 const { openUserSettings } = useAppModals()
+const { hasUpdate: hasUpstreamUpdate, check: checkUpstream } = useUpstreamUpdateCheck()
+
+onMounted(() => {
+  if (isLicenseBypass.value) {
+    checkUpstream()
+  }
+})
 
 // Check if header slot has content
 const hasHeaderContent = computed(() => {

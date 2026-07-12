@@ -34,6 +34,9 @@ export default {
 
     /** Source repository for this build (override with NUXT_PUBLIC_GITHUB_REPO_URL). */
     githubRepoUrl: process.env.NUXT_PUBLIC_GITHUB_REPO_URL || 'https://github.com/OpnForm/OpnForm',
+
+    /** Upstream OpnForm repo used for update checks (override with NUXT_PUBLIC_UPSTREAM_GITHUB_REPO_URL). */
+    upstreamGithubRepoUrl: process.env.NUXT_PUBLIC_UPSTREAM_GITHUB_REPO_URL || 'https://github.com/OpnForm/OpnForm',
   },
 
   /**
