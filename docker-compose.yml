@@ -1,7 +1,7 @@
 ---
 services:
   api: &api-environment
-    image: jhumanj/opnform-api:latest
+    image: ghcr.io/mon5termatt/opnform-api:latest
     container_name: opnform-api
     volumes: &api-environment-volumes
       - opnform_storage:/usr/share/nginx/html/storage:rw
@@ -67,7 +67,7 @@ services:
       start_period: 70s # Allow time for first scheduled run and cache write
 
   ui:
-    image: jhumanj/opnform-client:latest
+    image: ghcr.io/mon5termatt/opnform-client:latest
     container_name: opnform-client
     env_file:
       - ./client/.env
