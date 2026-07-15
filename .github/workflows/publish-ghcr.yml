@@ -28,6 +28,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Need full history + tags so APP_VERSION comes from the real release tag.
+          fetch-depth: 0
 
       - name: Image names (lowercase for GHCR)
         run: |
@@ -37,7 +40,13 @@ jobs:
           # Docker tags can use the branch name; the in-app version should not.
           echo "IMAGE_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
           echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
-          BASE_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "2.1.0")
+          # Avoid empty-pipeline success (sed exits 0 even when describe fails).
+          BASE_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
+          if [ -z "$BASE_VERSION" ]; then
+            echo "No git tag found for APP_VERSION" >&2
+            exit 1
+          fi
+          echo "Resolved APP_VERSION=${BASE_VERSION}"
           echo "APP_VERSION=${BASE_VERSION}" >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
