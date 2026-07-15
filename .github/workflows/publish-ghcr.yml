@@ -32,7 +32,7 @@ jobs:
           # Need full history + tags so APP_VERSION comes from the real release tag.
           fetch-depth: 0
 
-      - name: Image names (lowercase for GHCR)
+      - name: Resolve version from upstream release tags
         run: |
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           echo "API_IMAGE=${{ env.REGISTRY }}/${OWNER}/opnform-api" >> "$GITHUB_ENV"
@@ -40,6 +40,11 @@ jobs:
           # Docker tags can use the branch name; the in-app version should not.
           echo "IMAGE_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
           echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+          # Forks often lack upstream release tags — fetch them for describe.
+          git remote add upstream https://github.com/OpnForm/OpnForm.git 2>/dev/null || git remote set-url upstream https://github.com/OpnForm/OpnForm.git
+          git fetch --tags --force upstream
+
           # Avoid empty-pipeline success (sed exits 0 even when describe fails).
           BASE_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
           if [ -z "$BASE_VERSION" ]; then
