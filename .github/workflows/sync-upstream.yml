@@ -1,0 +1,137 @@
+name: Sync Upstream Releases
+
+# Poll OpnForm/OpnForm for new release tags, merge into license-bypass,
+# and push so publish-ghcr rebuilds. License-bypass commits ride along
+# with the merge; conflicts open an issue instead of force-pushing.
+
+on:
+  schedule:
+    # Four times daily — releases are infrequent; this keeps lag short.
+    - cron: "15 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Optional upstream tag to sync (e.g. v2.2.3). Leave empty for latest release."
+        required: false
+        type: string
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  sync:
+    name: Merge upstream release into license-bypass
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork branch
+        uses: actions/checkout@v4
+        with:
+          ref: license-bypass
+          fetch-depth: 0
+          # Need a token that can push back to the branch.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch upstream tags and main
+        run: |
+          git remote add upstream https://github.com/OpnForm/OpnForm.git 2>/dev/null \
+            || git remote set-url upstream https://github.com/OpnForm/OpnForm.git
+          git fetch --tags --force upstream
+          git fetch upstream main
+
+      - name: Resolve target upstream release
+        id: target
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          if [ -n "$INPUT_TAG" ]; then
+            TARGET_TAG="$INPUT_TAG"
+          else
+            TARGET_TAG=$(gh api repos/OpnForm/OpnForm/releases/latest --jq .tag_name)
+          fi
+
+          if [ -z "$TARGET_TAG" ]; then
+            echo "Could not resolve an upstream release tag" >&2
+            exit 1
+          fi
+
+          if ! git rev-parse -q --verify "refs/tags/${TARGET_TAG}" >/dev/null; then
+            echo "Tag ${TARGET_TAG} not found after fetching upstream" >&2
+            exit 1
+          fi
+
+          CURRENT=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+          echo "current_tag=${CURRENT}" >> "$GITHUB_OUTPUT"
+          echo "target_tag=${TARGET_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Current describe: ${CURRENT}"
+          echo "Target upstream release: ${TARGET_TAG}"
+
+          if git merge-base --is-ancestor "$TARGET_TAG" HEAD; then
+            echo "already_synced=true" >> "$GITHUB_OUTPUT"
+            echo "Branch already contains ${TARGET_TAG} — nothing to do."
+          else
+            echo "already_synced=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Merge upstream release
+        if: steps.target.outputs.already_synced != 'true'
+        id: merge
+        run: |
+          set +e
+          git merge "${{ steps.target.outputs.target_tag }}" \
+            -m "Merge upstream OpnForm ${{ steps.target.outputs.target_tag }} into license-bypass."
+          status=$?
+          set -e
+          if [ $status -ne 0 ]; then
+            echo "merge_failed=true" >> "$GITHUB_OUTPUT"
+            git merge --abort || true
+            exit 0
+          fi
+          echo "merge_failed=false" >> "$GITHUB_OUTPUT"
+
+      - name: Push license-bypass
+        if: steps.target.outputs.already_synced != 'true' && steps.merge.outputs.merge_failed != 'true'
+        run: |
+          git push origin HEAD:license-bypass
+          echo "Pushed merge of ${{ steps.target.outputs.target_tag }} — publish-ghcr should rebuild."
+
+      - name: Open issue on merge conflict
+        if: steps.merge.outputs.merge_failed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_TAG: ${{ steps.target.outputs.target_tag }}
+          CURRENT_TAG: ${{ steps.target.outputs.current_tag }}
+        run: |
+          TITLE="Upstream sync conflict: ${TARGET_TAG}"
+          EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            echo "Issue #${EXISTING} already open for this conflict."
+            exit 0
+          fi
+          gh issue create --title "$TITLE" --body "$(cat <<EOF
+          Automatic sync from \`OpnForm/OpnForm\` release \`${TARGET_TAG}\` into \`license-bypass\` hit a merge conflict.
+
+          - Current branch describe: \`${CURRENT_TAG}\`
+          - Target release: \`${TARGET_TAG}\`
+
+          Resolve manually (often \`LicenseService.php\`), then push to trigger the image rebuild:
+
+          \`\`\`bash
+          git fetch upstream --tags
+          git checkout license-bypass
+          git merge ${TARGET_TAG}
+          # fix conflicts, keep the local-bypass license behavior
+          git push origin license-bypass
+          \`\`\`
+          EOF
+          )"
