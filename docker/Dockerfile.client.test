@@ -1,0 +1,25 @@
+FROM node:24-alpine AS javascript-builder
+WORKDIR /app
+
+ADD ./client/package.json ./client/package-lock.json ./
+RUN apk add --no-cache git \
+ && npm cache clean --force \
+ && rm -rf node_modules \
+ && npm ci \
+ && npm cache clean --force
+
+ADD ./client/ /app/
+
+ENV NODE_ENV=production
+ENV GENERATE_SOURCEMAP=false
+ENV NUXT_TELEMETRY_DISABLED=1
+
+# Tuned for ~8GB hosts (upstream Dockerfile asks for 10GB+).
+RUN NODE_OPTIONS="--max-old-space-size=5120" \
+    NUXT_BUILD_CONCURRENCY=1 \
+    npm run build
+
+FROM node:24-alpine
+WORKDIR /app
+COPY --from=javascript-builder /app/.output/ /app/
+CMD [ "node", "./server/index.mjs" ]

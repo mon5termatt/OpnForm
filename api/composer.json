@@ -11,6 +11,12 @@
     ],
     "license": "MIT",
     "type": "project",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "packages/license-emulator"
+        }
+    ],
     "require": {
         "php": "^8.3",
         "ext-json": "*",
@@ -36,6 +42,7 @@
         "maatwebsite/excel": "^3.1",
         "mpociot/versionable": "^4.4",
         "openai-php/client": "*",
+        "opnform/license-emulator": "*",
         "propaganistas/laravel-disposable-email": "*",
         "sabberworm/php-css-parser": "^9.1",
         "sentry/sentry-laravel": "*",

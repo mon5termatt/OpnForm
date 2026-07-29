@@ -148,7 +148,7 @@ const alertConfig = computed(() => {
     icon: 'i-heroicons-information-circle',
     color: 'info',
     title: 'OIDC SSO',
-    description: 'OIDC is available on self-hosted instances. Free self-hosted instances are limited to 2 users total; activate an Enterprise license to add more users.',
+    description: 'Configure OpenID Connect single sign-on for this workspace.',
     actions: []
   }
 })

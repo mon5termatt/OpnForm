@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "961af48ddfce7334fd40697a96d42b50",
+    "content-hash": "a0b3b92426bd0a452d94001c7db5c12e",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -5904,6 +5904,38 @@
                 }
             ],
             "time": "2026-02-10T11:15:52+00:00"
+        },
+        {
+            "name": "opnform/license-emulator",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/license-emulator",
+                "reference": "b705e13b8d8a75ffcfc700f47e93e240ba0971b1"
+            },
+            "require": {
+                "php": "^8.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "OpnForm\\LicenseEmulator\\LicenseEmulatorServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "OpnForm\\LicenseEmulator\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Self-hosted license emulator that unlocks enterprise features without a paid key",
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "paragonie/constant_time_encoding",

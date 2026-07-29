@@ -1,0 +1,23 @@
+{
+    "name": "opnform/license-emulator",
+    "description": "Self-hosted license emulator that unlocks enterprise features without a paid key",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "OpnForm\\LicenseEmulator\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "OpnForm\\LicenseEmulator\\LicenseEmulatorServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
