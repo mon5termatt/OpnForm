@@ -1,16 +1,10 @@
 name: CI/CD Pipeline
 
+# Fork note: self-hosted images ship via publish-ghcr.yml; upstream merges via
+# sync-upstream.yml. Official Vapor/Amplify/Docker Hub deploy is unused here.
+# Auto-push CI is disabled so sync commits on main do not burn Actions minutes.
 on:
-  push:
-    branches: [main]
-    tags:
-      - "v*"
-    paths:
-      - "api/**"
-      - "client/**"
-      - "docker/**"
-      - "docker-compose*.yml"
-      - ".github/workflows/**"
+  workflow_dispatch:
   pull_request:
     paths:
       - "api/**"
@@ -18,7 +12,6 @@ on:
       - "docker/**"
       - "docker-compose*.yml"
       - ".github/workflows/**"
-  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -450,7 +443,8 @@ jobs:
 
   production-deploy:
     needs: [code_lint, client_checks, sync_check, tests, e2e]
-    if: success() && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Disabled on this fork (no Amplify/Vapor secrets; deploy is GHCR + compose).
+    if: false
     runs-on: ubuntu-latest
     name: Triggers Deployment (Vapor & Amplify)
 
@@ -509,7 +503,8 @@ jobs:
   publish-docker-images:
     name: Push Docker images to Docker Hub
     needs: [code_lint, client_checks, sync_check, tests, e2e]
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    # Disabled on this fork (images publish to GHCR via publish-ghcr.yml).
+    if: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
