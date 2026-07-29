@@ -103,7 +103,16 @@ jobs:
         if: steps.target.outputs.already_synced != 'true' && steps.merge.outputs.merge_failed != 'true'
         run: |
           git push origin HEAD:license-bypass
-          echo "Pushed merge of ${{ steps.target.outputs.target_tag }} — publish-ghcr should rebuild."
+          echo "Pushed merge of ${{ steps.target.outputs.target_tag }}"
+
+      # GITHUB_TOKEN pushes do not trigger other workflows — kick publish explicitly.
+      - name: Trigger GHCR image rebuild
+        if: steps.target.outputs.already_synced != 'true' && steps.merge.outputs.merge_failed != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run publish-ghcr.yml --ref license-bypass
+          echo "Triggered Publish GHCR Images on license-bypass."
 
       - name: Open issue on merge conflict
         if: steps.merge.outputs.merge_failed == 'true'
