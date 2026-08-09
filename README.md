@@ -1,87 +1,76 @@
-# OpnForm
+# OpnForm (de-enshittified fork)
 
 <p align="center">
 <img src="https://github.com/OpnForm/OpnForm/blob/main/client/public/img/social-preview.jpg?raw=true">
 </p>
 
-<p align="center">
-<a href="https://github.com/OpnForm/OpnForm/stargazers"><img src="https://img.shields.io/github/stars/OpnForm/OpnForm" alt="Github Stars"></a>
-</a>
-<a href="https://github.com/OpnForm/OpnForm/pulse"><img src="https://img.shields.io/github/commit-activity/m/OpnForm/OpnForm" alt="Commits per month"></a>
-<a href="https://hub.docker.com/r/jhumanj/opnform-api">
-<img src="https://img.shields.io/docker/pulls/jhumanj/opnform-api">
-</a>
-<a href="https://github.com/OpnForm/OpnForm/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPLv3-purple" alt="License">
-<a href="https://github.com/OpnForm/OpnForm/issues/new"><img src="https://img.shields.io/badge/Report a bug-Github-%231F80C0" alt="Report a bug"></a>
-<a href="https://github.com/OpnForm/OpnForm/discussions/new?category=q-a"><img src="https://img.shields.io/badge/Ask a question-Github-%231F80C0" alt="Ask a question"></a>
-<a href="https://feedback.opnform.com"><img src="https://img.shields.io/badge/Feature request-Featurebase-%231F80C0" alt="Ask a question"></a>
-<a href="https://discord.gg/YTSjU2a9TS"><img src="https://img.shields.io/badge/OpnForm-Discord-%235865F2.svg" alt="Ask a question"></a>
-</p>
+> **Unofficial fork.** This branch is maintained for people who self-host OpnForm and want the product to stay useful on their own hardware—without a license server deciding which basics they are allowed to run.
+
+Upstream OpnForm remains an excellent open-source form builder. This fork exists because self-hosted software keeps drifting toward the same tired pattern: charge for essentials, gate integrations, phone home for permission, and ship paid tiers that quietly break.
+
+## An open letter to OpnForm
+
+Please do the right thing.
+
+Self-hosting customers are not freeloaders. They run your code, report bugs, fix edge cases, and keep the AGPL ecosystem alive. When core self-hosted capabilities—removing branding, connecting Slack or Discord, using a custom domain, adding a few seats, enabling IP tracking—become paywalled “Enterprise” checkboxes, the product starts to feel less open and more extracted.
+
+Worse: when a paid feature ships broken, customers do not get a careful error. They get a dead button and a generic failure. That is how trust erodes.
+
+A healthier path still exists:
+
+1. **Keep the AGPL core genuinely capable.** Fund hosting, support, and managed cloud with service quality—not by locking ordinary self-host features behind a meter.
+2. **If a feature is sold, make sure it works.** Paid tiers should be the best-tested paths in the product, not the least.
+3. **Prefer honesty over dark patterns.** Clear licensing beats silent phone-home gates and surprise entitlement cliffs.
+4. **Treat self-hosters as partners.** They will pay for support, hosting, and real enterprise needs. They will not forever accept being treated like a leakage problem.
+
+Enshittification is optional. You can still choose not to.
+
+This fork is not a vendetta. It is a pressure valve: local license checks are bypassed so operators can run a complete self-hosted instance, keep shipping fixes, and stay synced with upstream releases. Prefer the [official project](https://github.com/OpnForm/OpnForm) and [managed cloud](https://opnform.com/) when that model fits. Prefer this fork when you need software you host to remain usable.
+
+OpnForm’s Enterprise terms still apply to proprietary Enterprise code if you use those features in production. For official licensing, see [OpnForm’s self-hosted license docs](https://docs.opnform.com/deployment/self-hosted-license).
+
+## What this fork changes
+
+- Bypasses self-hosted Enterprise license-server validation locally so feature gates do not depend on phone-home activation.
+- Keeps upstream syncs while preserving the license-bypass path.
+- Ships practical fixes found while operating self-hosted instances (for example, submission CSV export failing on forms with IP tracking enabled because the UI sent an `ip_address` column the export API rejected).
+- Publishes container images for this branch via GHCR for operators who want the patched build.
+
+This is not affiliated with or endorsed by the OpnForm authors.
+
+## Upstream OpnForm
 
 OpnForm is an open-source form builder.
 
-## Get Started
+### Get Started
 
-The easiest way to get started with OpnForm is to sign up for our [managed service in the Cloud](https://opnform.com/). You get support, backups, upgrades, and more. Your data is safe and secure, and you don't need to worry about maintenance or infrastructure. Check out our quick overview of [cloud vs self-hosting](https://docs.opnform.com/deployment/cloud-vs-self-hosting).
+The easiest official path is the [managed cloud service](https://opnform.com/). For self-hosted installs, see the [Deployment Guides](https://docs.opnform.com/deployment) and [Docker Development Guide](https://docs.opnform.com/deployment/docker-development).
 
-## Key Features
+### Key Features
 
--   🚀 No-code builder with unlimited forms & submissions
--   📝 Various input types: Text, Date, URL, File uploads & much more
--   🌐 Embed anywhere
--   📧 Email notifications
--   💬 Integrations (Slack, Webhooks, Discord)
--   🧠 Form logic & customization
--   🛡️ Captcha protection
--   📊 Form analytics
+- 🚀 No-code builder with unlimited forms & submissions
+- 📝 Various input types: Text, Date, URL, File uploads & much more
+- 🌐 Embed anywhere
+- 📧 Email notifications
+- 💬 Integrations (Slack, Webhooks, Discord)
+- 🧠 Form logic & customization
+- 🛡️ Captcha protection
+- 📊 Form analytics
 
-For a complete list of features and detailed documentation, visit our [Technical Documentation](https://docs.opnform.com).
+Full documentation: [docs.opnform.com](https://docs.opnform.com).
 
-## Quick Start
+### Codex worktrees
 
-The easiest way to get started with OpnForm is through our [official managed service in the Cloud](https://opnform.com/).
+Codex worktrees use an isolated PostgreSQL volume and local Laravel/Nuxt processes. Use `./scripts/codex-worktree-setup.sh` and `./scripts/codex-worktree-up.sh`, or the Codex Start/Reset/Stop actions. Seeded admin: `e2e@example.test` / `Abcd@1234`.
 
-For self-hosted installations, please refer to our [Deployment Guides](https://docs.opnform.com/deployment). For local development, we provide a minimal Docker-based setup - check out our [Docker Development Guide](https://docs.opnform.com/deployment/docker-development).
+### Support & Community (upstream)
 
-## Codex worktrees
+- [Discord](https://discord.gg/YTSjU2a9TS)
+- [Product Helpdesk](https://help.opnform.com)
+- [Technical Documentation](https://docs.opnform.com)
 
-Codex creates an isolated local environment for each worktree. It uses a dedicated PostgreSQL Docker volume and local Laravel/Nuxt processes, so sibling worktrees do not share ports, data, or API configuration.
+### License
 
-Use the Codex `Start app`, `Reset DB`, and `Stop app` actions when available. You can also run the scripts directly:
+OpnForm is open-source under the GNU Affero General Public License Version 3 (AGPLv3) or any later version. See [LICENSE](https://github.com/OpnForm/OpnForm/blob/main/LICENSE).
 
-```bash
-./scripts/codex-worktree-setup.sh
-./scripts/codex-worktree-up.sh
-```
-
-The startup command prints the worktree-specific URL. Opening its root URL automatically signs in the local Codex admin (`e2e@example.test` / `Abcd@1234`). The seed also creates three forms, including five completed submissions across two public forms, so the dashboard and submission screens are immediately useful. Reset only the current worktree database with:
-
-```bash
-./scripts/codex-worktree-reset-db.sh
-```
-
-Run the browser suite against the running worktree with:
-
-```bash
-./scripts/codex-worktree-test-e2e.sh
-```
-
-## Support & Community
-
-If you need help or have questions, please join our [Discord community](https://discord.gg/YTSjU2a9TS). For more information and assistance, check out the following resources:
-
--   [Product Helpdesk](https://help.opnform.com)
--   [Technical Documentation](https://docs.opnform.com)
-
-## License
-
-OpnForm is **open-source** under the GNU Affero General Public License Version 3 (AGPLv3) or any later version. You can find it [here](https://github.com/OpnForm/OpnForm/blob/main/LICENSE).
-
-### Dual Licensing
-
-OpnForm uses a dual-license model to make the project sustainable:
-
--   **Core OpnForm** (AGPL-3.0): The main application is free and open-source under AGPLv3, giving you the freedom to use, modify, and distribute it.
--   **Enterprise Edition** (Proprietary): Advanced features under `api/app/Enterprise/` are available under our [Enterprise License](https://github.com/OpnForm/OpnForm/blob/main/api/app/Enterprise/LICENSE) and [Enterprise Terms](https://opnform.com/terms-conditions). These features help fund ongoing development and keep OpnForm sustainable.
-
-By offering Enterprise features alongside our open-source core, we can continue to invest in making OpnForm better for everyone while keeping the project financially sustainable.
+Upstream also uses a dual-license model: core under AGPL-3.0, with advanced features under `api/app/Enterprise/` covered by OpnForm’s Enterprise terms. This fork does not change that legal reality; it only changes how self-hosted entitlement checks behave in practice on this branch.
