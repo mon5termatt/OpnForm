@@ -6,25 +6,24 @@ return [
     | Anonymous Telemetry Enabled
     |--------------------------------------------------------------------------
     |
-    | OpnForm collects anonymous usage data to help improve the product. This
-    | telemetry is completely anonymous and contains no personally identifiable
-    | information (PII). None of your customer data, form content, submission
-    | data, or user emails are ever transmitted.
+    | Upstream OpnForm can collect anonymous usage data. This fork defaults
+    | telemetry to OFF. Set OPNFORM_ANONYMOUS_TELEMETRY_DISABLED=false if you
+    | explicitly want to opt in.
     |
-    | It can be explicitly disabled by setting
-    | OPNFORM_ANONYMOUS_TELEMETRY_DISABLED to true.
+    | When enabled, telemetry only runs in production + self-hosted mode
+    | (see TelemetryService::shouldSendTelemetry()).
     |
-    | What is collected:
+    | What would be collected if enabled:
     | - Basic usage metrics (form creation, submissions, workspace creation, user additions)
     | - Anonymous instance identifier (UUID)
     | - No PII, form content, submission data, or user emails
     |
-    | Note: The actual check for production/self-hosted is done in
-    | TelemetryService::shouldSendTelemetry().
-    |
     */
 
-    'enabled' => !env('OPNFORM_ANONYMOUS_TELEMETRY_DISABLED', false),
+    'enabled' => !filter_var(
+        env('OPNFORM_ANONYMOUS_TELEMETRY_DISABLED', true),
+        FILTER_VALIDATE_BOOLEAN
+    ),
 
     /*
     |--------------------------------------------------------------------------

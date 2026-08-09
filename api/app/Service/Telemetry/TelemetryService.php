@@ -25,8 +25,8 @@ class TelemetryService
      */
     public function shouldSendTelemetry(): bool
     {
-        // Explicitly disabled via environment variable
-        if (!config('telemetry.enabled', true)) {
+        // Explicitly disabled via environment variable / fork default
+        if (!config('telemetry.enabled', false)) {
             return false;
         }
 

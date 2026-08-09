@@ -42,6 +42,7 @@ OpnForm’s Enterprise terms still apply to proprietary Enterprise code if you u
 ## What this fork changes
 
 - Restores a FOSS-first self-hosted posture by bypassing local Enterprise license-server validation, so feature gates do not depend on phone-home activation.
+- Defaults anonymous telemetry **off** (no usage events to `telemetry.opnform.com` unless you explicitly opt in).
 - Keeps upstream syncs while preserving the license-bypass path.
 - Ships practical production fixes found while operating self-hosted instances. One example: submission CSV export failed on forms with IP tracking enabled because the UI sent an `ip_address` column the export API rejected. There are others. They stay here until upstream changes course.
 - Publishes container images for this branch via GHCR for operators who want the patched FOSS build.

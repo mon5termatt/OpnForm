@@ -141,35 +141,25 @@ These variables are essential for connecting the Laravel backend to your databas
 
 ### Anonymous Telemetry
 
-OpnForm tracks usage of its products which helps the team to improve and deliver better software. You can opt-out of this telemetry at any time.
+Upstream OpnForm can collect anonymous usage statistics. **This fork defaults telemetry to off.**
 
-**What data is collected?**
+**How to keep it disabled (default):**
 
-None of your customer data is ever transmitted by OpnForm installation. The telemetry data collected are purely usage statistics of various software features:
+Leave unset, or set `OPNFORM_ANONYMOUS_TELEMETRY_DISABLED=true`.
 
-- Basic usage metrics (form creation, submissions, workspace creation, user additions)
-- Anonymous instance identifier (UUID)
-- Distribution of forms by type
-- No personally identifiable information (PII)
-- No form content, submission data, or user emails
+**How to opt in:**
 
-**How is the data used?**
+Set `OPNFORM_ANONYMOUS_TELEMETRY_DISABLED=false` if you explicitly want to send anonymous usage events to OpnForm.
 
-This data will only be used by OpnForm team for:
-
-- Directly improving the product and identifying the parts of product which are popular
-- Identifying areas with limited usage or where our users get stuck
-- Prioritizing the next set of features to be developed
-
-**When is telemetry active?**
+**When telemetry can be active (only if opted in):**
 
 - Production environments (`APP_ENV=production`)
 - Self-hosted deployments (`SELF_HOSTED=true`)
 - Disabled in local/development environments
 
-**How to opt-out:**
+**What would be collected if enabled:**
 
-Set `OPNFORM_ANONYMOUS_TELEMETRY_DISABLED=true` in your environment variables to disable data collection.
+None of your customer data is transmitted. Stats would cover basic feature usage and an anonymous instance UUID only (no form content, submissions, or user emails).
 
 ## Front-end Environment Variables
 

@@ -7,6 +7,8 @@ services:
       - opnform_storage:/usr/share/nginx/html/storage:rw
     environment: &api-env
       APP_ENV: production
+      # Fork default: do not phone home anonymous telemetry to OpnForm.
+      OPNFORM_ANONYMOUS_TELEMETRY_DISABLED: "true"
       # Database settings
       DB_HOST: db
       REDIS_HOST: redis

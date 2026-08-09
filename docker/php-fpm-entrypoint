@@ -126,8 +126,17 @@ apply_db_migrations() {
 }
 
 initialize_instance() {
-    echo "Initializing instance for telemetry"
-    php ./artisan telemetry:initialize-instance
+    # This fork defaults telemetry off. Only initialize when explicitly opted in.
+    local disabled="${OPNFORM_ANONYMOUS_TELEMETRY_DISABLED:-true}"
+    case "$(printf '%s' "$disabled" | tr '[:upper:]' '[:lower:]')" in
+        false|0|no|off)
+            echo "Initializing instance for telemetry"
+            php ./artisan telemetry:initialize-instance
+            ;;
+        *)
+            echo "Skipping telemetry instance init (OPNFORM_ANONYMOUS_TELEMETRY_DISABLED=${disabled})"
+            ;;
+    esac
 }
 
 optimize_application() {
