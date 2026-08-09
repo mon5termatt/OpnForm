@@ -21,7 +21,7 @@ A healthier path still exists:
 1. **Keep the AGPL core genuinely capable.** Fund hosting, support, and managed cloud with service quality, not by locking ordinary self-host features behind a meter.
 2. **If a feature is sold, make sure it works.** Paid tiers should be the best-tested paths in the product, not the least.
 3. **Prefer honesty over dark patterns.** Clear licensing beats silent phone-home gates and surprise entitlement cliffs.
-4. **Treat self-hosters as partners.** They will pay for support, hosting, and real enterprise needs. They will not forever accept being treated like a leakage problem.
+4. **Treat self-hosters as partners.** People choose FOSS because free means freedom: to run the software, study it, fix it, and keep control of their own stack. They will not forever accept being treated like a leakage problem.
 
 Enshittification is optional. You can still choose not to.
 
