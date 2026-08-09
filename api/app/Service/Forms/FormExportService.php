@@ -72,6 +72,10 @@ class FormExportService
             $filteredData['status'] = $submission->status === FormSubmission::STATUS_PARTIAL ? 'In Progress' : 'Completed';
         }
 
+        if (isset($displayColumns['ip_address']) && $displayColumns['ip_address'] === true) {
+            $filteredData['ip_address'] = $submission->meta['ip_address'] ?? '';
+        }
+
         return $filteredData;
     }
 

@@ -194,6 +194,49 @@ it('cannot export form submissions with invalid columns', function () {
         ->assertJsonValidationErrors(['columns']);
 });
 
+it('can export form submissions with the ip_address column when tracking is enabled', function () {
+    $user = $this->actingAsBusinessUser();
+    $workspace = $this->createUserWorkspace($user);
+    $form = $this->createForm($user, $workspace, [
+        'enable_ip_tracking' => true,
+        'properties' => [
+            [
+                'id' => 'name_field',
+                'name' => 'Name',
+                'type' => 'text',
+                'required' => true,
+            ],
+        ],
+    ]);
+
+    $formData = $this->generateFormSubmissionData($form, [
+        'name_field' => 'IP Export Tester',
+    ]);
+    $this->postJson(route('forms.answer', $form->slug), $formData)
+        ->assertSuccessful();
+
+    $response = $this->postJson(route('open.forms.submissions.export', [
+        'form' => $form,
+    ]), [
+        'columns' => [
+            'name_field' => true,
+            'created_at' => true,
+            'ip_address' => true,
+        ],
+    ]);
+
+    $response->assertSuccessful()
+        ->assertHeader('content-disposition', 'attachment; filename=' . $form->slug . '-submission-data.csv');
+
+    ob_start();
+    $response->sendContent();
+    $content = ob_get_clean();
+
+    $rows = parseCsvRows($content);
+    expect($rows[0])->toContain('ip_address');
+    expect($rows[1][array_search('ip_address', $rows[0], true)])->toContain('127.0.0.1');
+});
+
 it('cannot export form submissions from another user form', function () {
     $user = User::factory()->create();
     $workspace = createUserWorkspace($user);

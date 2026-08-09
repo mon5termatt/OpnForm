@@ -196,7 +196,10 @@ const startExport = () => {
     }
   }).catch((error) => {
     console.error(error)
-    exportError.value = error.response?.data?.message || 'Export failed'
+    exportError.value = error?.data?.message
+      || error?.response?.data?.message
+      || error?.message
+      || 'Export failed'
     exportStatus.value = 'failed'
     showModal.value = true
     isExporting.value = false
