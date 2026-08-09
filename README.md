@@ -4,7 +4,7 @@
 <img src="https://github.com/OpnForm/OpnForm/blob/main/client/public/img/social-preview.jpg?raw=true">
 </p>
 
-> **Unofficial fork.** This branch is maintained for people who self-host OpnForm and want the product to stay useful on their own hardware—without a license server deciding which basics they are allowed to run.
+> **Unofficial fork.** This branch is maintained for people who self-host OpnForm and want the product to stay useful on their own hardware, without a license server deciding which basics they are allowed to run.
 
 Upstream OpnForm remains an excellent open-source form builder. This fork exists because self-hosted software keeps drifting toward the same tired pattern: charge for essentials, gate integrations, phone home for permission, and ship paid tiers that quietly break.
 
@@ -12,13 +12,13 @@ Upstream OpnForm remains an excellent open-source form builder. This fork exists
 
 Please do the right thing.
 
-Self-hosting customers are not freeloaders. They run your code, report bugs, fix edge cases, and keep the AGPL ecosystem alive. When core self-hosted capabilities—removing branding, connecting Slack or Discord, using a custom domain, adding a few seats, enabling IP tracking—become paywalled “Enterprise” checkboxes, the product starts to feel less open and more extracted.
+Self-hosting customers are not freeloaders. They run your code, report bugs, fix edge cases, and keep the AGPL ecosystem alive. When core self-hosted capabilities (removing branding, connecting Slack or Discord, using a custom domain, adding a few seats, enabling IP tracking) become paywalled “Enterprise” checkboxes, the product starts to feel less open and more extracted.
 
 Worse: when a paid feature ships broken, customers do not get a careful error. They get a dead button and a generic failure. That is how trust erodes.
 
 A healthier path still exists:
 
-1. **Keep the AGPL core genuinely capable.** Fund hosting, support, and managed cloud with service quality—not by locking ordinary self-host features behind a meter.
+1. **Keep the AGPL core genuinely capable.** Fund hosting, support, and managed cloud with service quality, not by locking ordinary self-host features behind a meter.
 2. **If a feature is sold, make sure it works.** Paid tiers should be the best-tested paths in the product, not the least.
 3. **Prefer honesty over dark patterns.** Clear licensing beats silent phone-home gates and surprise entitlement cliffs.
 4. **Treat self-hosters as partners.** They will pay for support, hosting, and real enterprise needs. They will not forever accept being treated like a leakage problem.
