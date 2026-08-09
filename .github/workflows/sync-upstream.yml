@@ -6,8 +6,8 @@ name: Sync Upstream Releases
 
 on:
   schedule:
-    # Four times daily — releases are infrequent; this keeps lag short.
-    - cron: "15 */6 * * *"
+    # Once daily. Releases are infrequent.
+    - cron: "15 6 * * *"
   workflow_dispatch:
     inputs:
       tag:
