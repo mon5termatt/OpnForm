@@ -22,6 +22,7 @@ concurrency:
 permissions:
   contents: write
   issues: write
+  actions: write
 
 jobs:
   sync:
@@ -106,12 +107,16 @@ jobs:
           echo "Pushed merge of ${{ steps.target.outputs.target_tag }}"
 
       # GITHUB_TOKEN pushes do not trigger other workflows — kick publish explicitly.
+      # Pin -R to this fork: after adding the upstream remote, `gh` can resolve
+      # OpnForm/OpnForm instead and 404 looking for publish-ghcr.yml there.
       - name: Trigger GHCR image rebuild
         if: steps.target.outputs.already_synced != 'true' && steps.merge.outputs.merge_failed != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh workflow run publish-ghcr.yml --ref license-bypass
+          gh workflow run publish-ghcr.yml \
+            --repo "${{ github.repository }}" \
+            --ref license-bypass
           echo "Triggered Publish GHCR Images on license-bypass."
 
       - name: Open issue on merge conflict
