@@ -328,6 +328,7 @@ const linkGroups = computed(() => [
   {
     title: "Developers",
     links: [
+      { label: "MCP for AI agents", to: { name: "mcp" } },
       { label: "Open-source", href: opnformConfig.links.github_url },
       { label: "Self-hosting", href: opnformConfig.links.self_hosting },
       { label: "Documentation", href: opnformConfig.links.tech_docs },
@@ -339,8 +340,8 @@ const linkGroups = computed(() => [
     links: [
       { label: "Feedback", href: "https://feedback.opnform.com/" },
       { label: "Changelog", href: "https://feedback.opnform.com/changelog" },
-      // { label: "Privacy Policy", to: { name: "privacy-policy" } },
-      // { label: "Terms & Conditions", to: { name: "terms-conditions" } },
+      { label: "Privacy Policy", to: { name: "privacy-policy" } },
+      { label: "Terms & Conditions", to: { name: "terms-conditions" } },
     ],
   },
 ])

@@ -94,7 +94,10 @@ jobs:
           status=$?
           set -e
           if [ $status -ne 0 ]; then
+            CONFLICTS=$(git diff --name-only --diff-filter=U | paste -sd, -)
             echo "merge_failed=true" >> "$GITHUB_OUTPUT"
+            echo "conflicts=${CONFLICTS}" >> "$GITHUB_OUTPUT"
+            echo "Merge conflicts: ${CONFLICTS}"
             git merge --abort || true
             exit 0
           fi
@@ -125,20 +128,26 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_TAG: ${{ steps.target.outputs.target_tag }}
           CURRENT_TAG: ${{ steps.target.outputs.current_tag }}
+          CONFLICTS: ${{ steps.merge.outputs.conflicts }}
         run: |
           TITLE="Upstream sync conflict: ${TARGET_TAG}"
-          EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number')
+          # Pin --repo: after adding the upstream remote, gh can target OpnForm/OpnForm.
+          # Forks often have Issues disabled; never fail the job on that.
+          EXISTING=$(gh issue list --repo "${{ github.repository }}" --state open \
+            --search "$TITLE in:title" --json number --jq '.[0].number' 2>/dev/null || true)
           if [ -n "$EXISTING" ]; then
             echo "Issue #${EXISTING} already open for this conflict."
             exit 0
           fi
-          gh issue create --title "$TITLE" --body "$(cat <<EOF
+          set +e
+          gh issue create --repo "${{ github.repository }}" --title "$TITLE" --body "$(cat <<EOF
           Automatic sync from \`OpnForm/OpnForm\` release \`${TARGET_TAG}\` into \`license-bypass\` hit a merge conflict.
 
           - Current branch describe: \`${CURRENT_TAG}\`
           - Target release: \`${TARGET_TAG}\`
+          - Conflicted files: \`${CONFLICTS:-unknown}\`
 
-          Resolve manually (often \`LicenseService.php\`), then push to trigger the image rebuild:
+          Resolve manually (keep the local-bypass license behavior), then push to trigger the image rebuild:
 
           \`\`\`bash
           git fetch upstream --tags
@@ -149,3 +158,11 @@ jobs:
           \`\`\`
           EOF
           )"
+          status=$?
+          set -e
+          if [ $status -ne 0 ]; then
+            echo "Could not open a GitHub issue (Issues may be disabled on this fork)."
+            echo "Manual merge required: ${CURRENT_TAG} -> ${TARGET_TAG}"
+            echo "Conflicted files: ${CONFLICTS:-unknown}"
+            exit 0
+          fi
