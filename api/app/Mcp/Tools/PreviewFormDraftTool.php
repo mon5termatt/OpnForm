@@ -3,6 +3,7 @@
 namespace App\Mcp\Tools;
 
 use App\Mcp\Apps\FormDraftPreviewApp;
+use App\Mcp\Support\McpOutputSchema;
 use App\Service\Forms\AgentFormDraftService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
@@ -11,38 +12,59 @@ use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\RendersApp;
+use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
+use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('preview_form_draft')]
-#[Description('Render the current guest draft, return a browser preview valid for one hour, and create a reusable editor link that remains valid for the seven-day guest draft lifetime. Call this tool again whenever a fresh preview link is needed.')]
+#[Description('Render the final interactive preview for an existing guest draft without changing it. Call exactly once after a successful create_form_draft or patch_form_draft, and use it again only when the user explicitly asks to refresh an existing preview. After success, briefly summarize the result and ask one question offering two choices: modify the draft again or save it to the user\'s OpnForm account. Do not request OAuth unless the user chooses save. The signed preview remains valid until the seven-day draft expires. This tool is read-only, safe to retry after an error, and does not create an editor link.')]
 #[RendersApp(resource: FormDraftPreviewApp::class)]
-#[IsOpenWorld]
+#[IsReadOnly]
+#[IsDestructive(false)]
+#[IsOpenWorld(false)]
 class PreviewFormDraftTool extends GuestDraftMcpTool
 {
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        $this->setMeta('openai/outputTemplate', FormDraftPreviewApp::URI);
+
+        return parent::toArray();
+    }
+
     public function handle(Request $request, AgentFormDraftService $drafts): ResponseFactory
     {
         $validated = $request->validate([
-            'draft_token' => ['required', 'string', 'size:43'],
+            'draft_handle' => ['required', 'string', 'size:43'],
         ]);
-        $draft = $drafts->get($validated['draft_token']);
-        $handoff = $drafts->issueEditorHandoff($validated['draft_token']);
+        $draft = $drafts->get($validated['draft_handle']);
 
         return Response::structured([
+            'draft_handle' => $validated['draft_handle'],
             'draft' => $drafts->serialize($draft),
-            'preview_url' => $drafts->previewUrl($draft),
-            'editor_url' => $handoff['editor_url'],
-            'editor_link_expires_at' => $handoff['expires_at'],
-        ]);
+            'next_step' => 'Briefly summarize the preview, then ask one question offering two choices: modify the draft again or save it to the user\'s OpnForm account. Do not request OAuth unless the user chooses save.',
+        ])->withMeta('preview_url', $drafts->previewUrl($draft));
     }
 
     public function schema(JsonSchema $schema): array
     {
         return [
-            'draft_token' => $schema->string()
-                ->description('Private capability token returned by create_form_draft.')
+            'draft_handle' => $schema->string()
+                ->description('Opaque reference returned by create_form_draft. Pass it unchanged.')
                 ->min(43)
                 ->max(43)
                 ->required(),
+        ];
+    }
+
+    public function outputSchema(JsonSchema $schema): array
+    {
+        return [
+            'draft_handle' => $schema->string()->min(43)->max(43)->required(),
+            'draft' => McpOutputSchema::draft($schema)->required(),
+            'next_step' => $schema->string()->required(),
         ];
     }
 }

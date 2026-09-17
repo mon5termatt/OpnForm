@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Forms\AgentFormDraft;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -49,6 +50,19 @@ class RouteServiceProvider extends ServiceProvider
     {
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('password-reset', function (Request $request) {
+            $ip = $request->ip();
+            $requestedEmail = $request->input('email');
+            $email = is_string($requestedEmail) ? strtolower(trim($requestedEmail)) : 'invalid';
+            $emailKey = hash('sha256', $email !== '' ? $email : 'unknown');
+
+            return [
+                Limit::perMinute(5)->by('password-reset:minute:ip:' . $ip),
+                Limit::perHour(30)->by('password-reset:hour:ip:' . $ip),
+                Limit::perHour(5)->by('password-reset:hour:email:' . $emailKey),
+            ];
         });
 
         RateLimiter::for('oidc-init', function (Request $request) {
@@ -120,6 +134,50 @@ class RouteServiceProvider extends ServiceProvider
 
         RateLimiter::for('mcp-oauth-registration', function (Request $request) {
             return Limit::perHour(20)->by('mcp-oauth-registration:'.$request->ip());
+        });
+
+        RateLimiter::for('agent-draft-preview', function (Request $request) {
+            $routeDraft = $request->route('draft');
+            $draftId = (string) ($routeDraft instanceof AgentFormDraft ? $routeDraft->getKey() : $routeDraft);
+            $identifier = ctype_digit($draftId)
+                ? 'draft:'.$draftId
+                : 'invalid:'.$request->ip();
+
+            return [
+                Limit::perMinute(max(1, config('opnform.mcp.rate_limit.draft_preview_requests_per_minute', 240)))
+                    ->by('agent-draft-preview:'.$identifier),
+                Limit::perMinute(max(1, config('opnform.mcp.rate_limit.draft_proxy_pool_per_minute', 6000)))
+                    ->by('agent-draft-preview:proxy:'.$request->ip()),
+            ];
+        });
+
+        RateLimiter::for('agent-draft-handoff', function (Request $request) {
+            $token = (string) $request->input('handoff_token');
+            $identifier = strlen($token) === 43
+                ? 'token:'.hash('sha256', $token)
+                : 'invalid:'.$request->ip();
+
+            return [
+                Limit::perMinute(max(1, config('opnform.mcp.rate_limit.draft_handoffs_per_minute', 120)))
+                    ->by('agent-draft-handoff:'.$identifier),
+                Limit::perMinute(max(1, config('opnform.mcp.rate_limit.draft_proxy_pool_per_minute', 6000)))
+                    ->by('agent-draft-handoff:proxy:'.$request->ip()),
+            ];
+        });
+
+        RateLimiter::for('agent-draft-editor', function (Request $request) {
+            $session = (string) $request->header('x-agent-draft-session');
+            $identifier = strlen($session) === 43
+                ? 'session:'.hash('sha256', $session)
+                : 'missing:'.$request->ip();
+            $route = $request->route()?->getName() ?? $request->path();
+
+            return [
+                Limit::perMinute(max(1, config('opnform.mcp.rate_limit.draft_editor_requests_per_minute', 240)))
+                    ->by('agent-draft-editor:'.$route.':'.$identifier),
+                Limit::perMinute(max(1, config('opnform.mcp.rate_limit.draft_proxy_pool_per_minute', 6000)))
+                    ->by('agent-draft-editor:proxy:'.$request->ip()),
+            ];
         });
     }
 

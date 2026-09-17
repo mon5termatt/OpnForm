@@ -2,6 +2,7 @@
 
 namespace App\Mcp\Tools;
 
+use App\Mcp\Support\McpOutputSchema;
 use App\Service\Forms\AgentFormDraftRateLimiter;
 use App\Service\Forms\AgentFormDraftService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -10,10 +11,16 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\Title;
+use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
+use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[Name('create_form_draft')]
-#[Description('Create a private server-side OpnForm draft that expires after seven days. Works without login. Returns a capability token once; keep it private and use it with get_form_draft and patch_form_draft. The form remains an unpublished draft.')]
+#[Title('Create a Guest Form Draft')]
+#[Description('Default tool for creating a new form unless the user explicitly asks to save it in an OpnForm account or workspace. Creates a temporary unpublished seven-day guest draft without login. This tool is data-only and never renders a widget. On success, call preview_form_draft exactly once with the returned draft_handle so the user sees one final interactive preview. Do not retry after success. Validation errors are safe to correct and retry; draft creation itself is not idempotent.')]
+#[IsReadOnly(false)]
+#[IsDestructive(false)]
 #[IsOpenWorld(false)]
 class CreateFormDraftTool extends GuestDraftMcpTool
 {
@@ -34,13 +41,8 @@ class CreateFormDraftTool extends GuestDraftMcpTool
         $created = $drafts->create($validated['definition']);
 
         return Response::structured([
-            'draft_token' => $created['token'],
+            'draft_handle' => $created['token'],
             'draft' => $drafts->serialize($created['draft']),
-            'next_steps' => [
-                'Keep draft_token private; it grants access to this draft.',
-                'Use patch_form_draft with expected_version for changes.',
-                'Render a preview before asking the user to claim or publish the form.',
-            ],
         ]);
     }
 
@@ -50,6 +52,18 @@ class CreateFormDraftTool extends GuestDraftMcpTool
             'definition' => $schema->object()
                 ->description('Form definition following opnform://schemas/agent-form-definition/v1. The server normalizes defaults, aliases, IDs, and visibility.')
                 ->required(),
+        ];
+    }
+
+    public function outputSchema(JsonSchema $schema): array
+    {
+        return [
+            'draft_handle' => $schema->string()
+                ->description('Opaque reference for this temporary draft. Pass it unchanged to guest draft tools.')
+                ->min(43)
+                ->max(43)
+                ->required(),
+            'draft' => McpOutputSchema::draft($schema)->required(),
         ];
     }
 }

@@ -40,8 +40,10 @@
       />
       <div
         v-else
-        class="overflow-hidden border border-neutral-200 bg-white shadow-sm"
-        :class="isEmbedded && isFocused ? 'h-full' : (isEmbedded ? '' : 'min-h-[650px] rounded-xl')"
+        class="overflow-hidden"
+        :class="isEmbedded
+          ? (isFocused ? 'h-full bg-transparent' : 'bg-transparent')
+          : 'min-h-[650px] rounded-xl border border-neutral-200 bg-white shadow-sm'"
       >
         <OpenCompleteForm
           ref="formPreview"
@@ -67,9 +69,6 @@ import { FormMode } from '~/lib/forms/FormModeStrategy.js'
 
 definePageMeta({ layout: 'empty' })
 useOpnSeoMeta({ title: 'Private form draft preview' })
-useHead({
-  script: [{ src: '/widgets/iframeResizer.contentWindow.min.js' }],
-})
 
 const route = useRoute()
 const config = useRuntimeConfig()
@@ -81,9 +80,17 @@ const form = ref(null)
 const formPreview = ref(null)
 const isSubmitted = ref(false)
 const isResetting = ref(false)
+let previewRetryTimer = null
 const isEmbedded = computed(() => route.query.embedded === '1')
 const isFocused = computed(() => form.value?.presentation_style === 'focused')
 provide('disableCustomCodeExecution', true)
+
+useHead(() => ({
+  script: [{ src: '/widgets/iframeResizer.contentWindow.min.js' }],
+  style: isEmbedded.value
+    ? [{ children: 'html, body, #__nuxt { background: transparent !important; }' }]
+    : [],
+}))
 
 const resetForm = () => {
   if (!formPreview.value?.restart || isResetting.value) return
@@ -98,6 +105,67 @@ const resetForm = () => {
     })
 }
 
+const previewErrorStatus = exception => exception?.statusCode
+  || exception?.response?.status
+  || exception?.status
+
+const retryAfterSeconds = (exception) => {
+  const header = exception?.response?.headers?.get?.('retry-after')
+  const seconds = Number.parseInt(header || '5', 10)
+
+  return Math.min(Math.max(Number.isFinite(seconds) ? seconds : 5, 1), 60)
+}
+
+const loadPreview = (source, canRetryRateLimit = true) => {
+  loading.value = true
+  error.value = null
+
+  $fetch(source.toString()).then((response) => {
+    form.value = {
+      ...response.draft.definition,
+      no_branding: true,
+      plan_tier: 'pro',
+      is_trialing: false,
+      max_file_size: 10,
+      workspace: { plan_tier: 'pro', features: [], limits: {} },
+    }
+  }).catch((exception) => {
+    const status = previewErrorStatus(exception)
+
+    if (status === 429 && canRetryRateLimit) {
+      const seconds = retryAfterSeconds(exception)
+      errorTitle.value = 'Preview temporarily rate-limited'
+      error.value = `Too many preview requests were received. Retrying automatically in ${seconds} seconds.`
+      previewRetryTimer = window.setTimeout(() => loadPreview(source, false), seconds * 1000)
+
+      return
+    }
+
+    if (status === 403) {
+      errorTitle.value = 'This preview link has expired'
+      error.value = 'Ask your AI assistant to generate a fresh preview of this draft.'
+
+      return
+    }
+
+    if (status === 404) {
+      errorTitle.value = 'This draft is no longer available'
+      error.value = 'Guest drafts are available for seven days. Ask your AI assistant to recreate the form if you still need it.'
+
+      return
+    }
+
+    errorTitle.value = status === 429
+      ? 'Preview temporarily rate-limited'
+      : 'The preview could not be loaded'
+    error.value = status === 429
+      ? 'Please wait a moment, then ask your AI assistant to refresh the preview.'
+      : 'Ask your AI assistant to refresh the preview. Your draft may still be available.'
+  }).finally(() => {
+    loading.value = false
+  })
+}
+
 onMounted(() => {
   try {
     const source = new URL(String(route.query.source || ''))
@@ -107,24 +175,16 @@ onMounted(() => {
       throw new Error('The preview link is invalid.')
     }
 
-    $fetch(source.toString()).then((response) => {
-      form.value = {
-        ...response.draft.definition,
-        no_branding: true,
-        plan_tier: 'pro',
-        is_trialing: false,
-        max_file_size: 10,
-        workspace: { plan_tier: 'pro', features: [], limits: {} },
-      }
-    }).catch(() => {
-      errorTitle.value = 'This preview link has expired'
-      error.value = 'Your draft is usually still available for seven days. Ask your AI assistant: “Generate a new preview of this form.”'
-    }).finally(() => {
-      loading.value = false
-    })
+    loadPreview(source)
   } catch (exception) {
     error.value = exception.message || 'The preview link is invalid.'
     loading.value = false
+  }
+})
+
+onBeforeUnmount(() => {
+  if (previewRetryTimer) {
+    window.clearTimeout(previewRetryTimer)
   }
 })
 </script>

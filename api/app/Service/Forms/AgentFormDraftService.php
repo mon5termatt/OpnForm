@@ -16,10 +16,9 @@ class AgentFormDraftService
 {
     public const EXPIRY_DAYS = 7;
 
-    public const PREVIEW_URL_TTL_MINUTES = 60;
-
     public function __construct(
         private readonly AgentFormDefinition $formDefinition,
+        private readonly AgentFormQualityAnalyzer $qualityAnalyzer,
         private readonly AgentFormDraftPatcher $patcher,
         private readonly FormCreationService $formCreation,
     ) {
@@ -32,6 +31,7 @@ class AgentFormDraftService
     {
         $definition['visibility'] = 'draft';
         $definition = $this->formDefinition->normalizeAndValidate($definition);
+        $this->qualityAnalyzer->assertReadyForAgentPersistence($definition);
         $token = $this->generateToken();
 
         $draft = AgentFormDraft::query()->create([
@@ -65,6 +65,7 @@ class AgentFormDraftService
             $definition = $this->patcher->apply($draft->definition, $operations);
             $definition['visibility'] = 'draft';
             $definition = $this->formDefinition->normalizeAndValidate($definition);
+            $this->qualityAnalyzer->assertReadyForAgentPersistence($definition);
 
             $draft->forceFill([
                 'definition' => $definition,
@@ -218,7 +219,7 @@ class AgentFormDraftService
     {
         $sourceUrl = URL::temporarySignedRoute(
             'agent-drafts.preview',
-            now()->addMinutes(self::PREVIEW_URL_TTL_MINUTES),
+            $draft->expires_at,
             ['draft' => $draft->id],
         );
 
@@ -227,7 +228,7 @@ class AgentFormDraftService
 
     private function resolveActive(string $token, bool $lock = false): AgentFormDraft
     {
-        $this->assertTokenShape($token, 'draft_token');
+        $this->assertTokenShape($token, 'draft_handle');
 
         $query = AgentFormDraft::query()
             ->where('token_hash', $this->hashToken($token))
@@ -287,7 +288,7 @@ class AgentFormDraftService
     {
         if (! preg_match('/^[A-Za-z0-9_-]{43}$/', $token)) {
             throw ValidationException::withMessages([
-                $field => ['Invalid or unavailable capability token.'],
+                $field => ['Invalid or unavailable draft handle.'],
             ]);
         }
     }
@@ -317,7 +318,7 @@ class AgentFormDraftService
     private function unavailable(): ValidationException
     {
         return ValidationException::withMessages([
-            'draft_token' => ['Draft not found, expired, or already claimed.'],
+            'draft_handle' => ['Draft not found, expired, or already claimed.'],
         ]);
     }
 }

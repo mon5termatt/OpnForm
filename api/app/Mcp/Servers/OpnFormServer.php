@@ -3,6 +3,7 @@
 namespace App\Mcp\Servers;
 
 use App\Mcp\Apps\FormDraftPreviewApp;
+use App\Mcp\Apps\LegacyFormDraftPreviewApp;
 use App\Mcp\Methods\CallTool;
 use App\Mcp\Resources\FormDefinitionSchemaResource;
 use App\Mcp\Resources\FormFieldCatalogResource;
@@ -33,7 +34,7 @@ use Laravel\Mcp\Server\Attributes\Version;
 
 #[Name('OpnForm')]
 #[Version('1.0.0')]
-#[Instructions('Use OpnForm MCP tools directly. Never invoke Codex or ChatGPT recursively, run `codex exec`, use shell or raw HTTP, inspect repositories or caches, or switch connectors. If the tools required for the active workflow are unexpectedly missing, stop and ask the user to start a new conversation with OpnForm selected before the first message. All account, form, and submission tools require OAuth. Enabling the plugin is not OAuth authentication. In local Codex, start a new conversation after OAuth so the MCP client loads the stored credential. When guest draft tools are available, they need no login. When they are unavailable, authenticate and use create_form to save an unpublished draft in a writable workspace. If an account tool challenges, ask the user to authenticate the OpnForm MCP server in the host; do not repeatedly retry from the guest conversation. Read the schema and field catalog before generating a form or changing its presentation, fields, layout, or media, then validate before saving. Focused presentation creates one step per block automatically: use full-width blocks, no page breaks or standalone media blocks, and attach optional media through the block image property. Use only durable public HTTPS asset URLs, never localhost or temporary tunnel URLs.')]
+#[Instructions('Treat a natural request to create a form as a guest workflow unless the user explicitly asks for account persistence. No login or preview wording is required. Read the form schema and field catalog, follow their authoring guidance, validate, then create or patch the draft. Create and patch are data-only: after either succeeds, call preview_form_draft exactly once so the turn contains one final interactive preview. Use sanitized HTML, never Markdown, in nf-text content. Every input name is a respondent-facing label in sentence case with spaces; technical identifiers belong only in id and may be omitted. Correct relevant quality_warnings before persistence. OAuth is only for saving or managing account forms, workspaces, or submissions. After a guest preview, briefly ask whether to modify or save. After an account form is saved as an unpublished draft, ask whether to publish and require explicit confirmation. Keep replies concise, use OpnForm MCP tools directly, preserve draft handles privately, and do not bypass validation, revisions, permissions, confirmations, plan rules, or rate limits.')]
 class OpnFormServer extends Server
 {
     public int $maxPaginationLength = 100;
@@ -67,6 +68,7 @@ class OpnFormServer extends Server
         FormDefinitionSchemaResource::class,
         FormFieldCatalogResource::class,
         FormDraftPreviewApp::class,
+        LegacyFormDraftPreviewApp::class,
     ];
 
     protected function boot(): void

@@ -58,7 +58,7 @@
     </SettingsModalPage>
 
     <SettingsModalPage
-      v-if="canManageInstanceSettings"
+      v-if="canViewMcpSettings"
       id="mcp"
       label="MCP & AI agents"
       icon="i-heroicons-cpu-chip"
@@ -95,6 +95,7 @@ const { current: workspace, workspaces } = useCurrentWorkspace()
 const { data: user } = useAuth().user()
 const isSelfHosted = computed(() => useFeatureFlag('self_hosted'))
 const canManageInstanceSettings = computed(() => isSelfHosted.value && !!workspaces.value?.some(candidate => candidate.is_admin))
+const canViewMcpSettings = computed(() => !isSelfHosted.value || canManageInstanceSettings.value)
 const canManageLicense = canManageInstanceSettings
 const { isLicenseBypass } = useInstanceLicense()
 

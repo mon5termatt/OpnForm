@@ -14,6 +14,16 @@ function readOpnformPluginJson(string $path): array
     );
 }
 
+function readOpnformSkillBundle(): string
+{
+    $skillRoot = opnformPluginPath('skills/opnform');
+    $references = collect(glob($skillRoot.'/references/*.md'))
+        ->map(fn (string $path): string => file_get_contents($path))
+        ->implode("\n");
+
+    return file_get_contents($skillRoot.'/SKILL.md')."\n".$references;
+}
+
 it('ships portable manifests that conform to the Agent Plugins 1.0 schemas', function () {
     $plugin = readOpnformPluginJson('plugin.json');
     $mcp = readOpnformPluginJson('mcp.json');
@@ -44,6 +54,7 @@ it('ships a valid native OpenAI plugin wrapper for the hosted MCP server', funct
     $portable = readOpnformPluginJson('plugin.json');
     $portableMcp = readOpnformPluginJson('mcp.json');
     $native = readOpnformPluginJson('.codex-plugin/plugin.json');
+    $nativeApps = readOpnformPluginJson('.app.json');
     $nativeMcp = readOpnformPluginJson('.mcp.json');
     $nativePluginFields = [
         'id', 'name', 'version', 'description', 'skills', 'apps', 'mcpServers',
@@ -58,7 +69,7 @@ it('ships a valid native OpenAI plugin wrapper for the hosted MCP server', funct
 
     expect($native)
         ->toHaveKeys([
-            'name', 'version', 'description', 'author', 'skills', 'mcpServers', 'interface',
+            'name', 'version', 'description', 'author', 'skills', 'apps', 'mcpServers', 'interface',
         ])
         ->and($native['name'])->toBe($portable['name'])
         ->and($native['version'])->toBe($portable['version'])
@@ -68,8 +79,8 @@ it('ships a valid native OpenAI plugin wrapper for the hosted MCP server', funct
         ->and($native['repository'])->toBe($portable['repository'])
         ->and(array_diff(array_keys($native), $nativePluginFields))->toBe([])
         ->and($native['skills'])->toBe('./skills/')
+        ->and($native['apps'])->toBe('./.app.json')
         ->and($native['mcpServers'])->toBe('./.mcp.json')
-        ->and($native)->not->toHaveKey('apps')
         ->and($native['interface'])->toHaveKeys([
             'displayName', 'shortDescription', 'longDescription', 'developerName',
             'category', 'capabilities', 'websiteURL', 'privacyPolicyURL',
@@ -78,13 +89,20 @@ it('ships a valid native OpenAI plugin wrapper for the hosted MCP server', funct
         ->and(array_diff(array_keys($native['interface']), $nativeInterfaceFields))->toBe([])
         ->and($native['interface']['websiteURL'])->toBe($portable['author']['url'])
         ->and($native['interface']['defaultPrompt'])->toHaveCount(3)
+        ->and($native['interface']['defaultPrompt'][0])->toContain('polished contact form')
         ->and($nativeMcp['mcpServers']['opnform'])->toBe([
             'type' => 'http',
             'url' => $portableMcp['mcpServers']['opnform']['url'],
             'auth' => 'oauth',
         ])
         ->and(array_diff(array_keys($nativeMcp), ['mcpServers']))->toBe([])
-        ->and(opnformPluginPath('.app.json'))->not->toBeFile();
+        ->and($nativeApps)->toBe([
+            'apps' => [
+                'opnform' => [
+                    'id' => 'plugin_asdk_app_6a86dddc8f6c8191b0cc91f3a2a76d19',
+                ],
+            ],
+        ]);
 
     foreach ($native['interface']['defaultPrompt'] as $prompt) {
         expect($prompt)->toBeString()
@@ -96,6 +114,7 @@ it('keeps every native manifest path relative to and inside the plugin package',
     $native = readOpnformPluginJson('.codex-plugin/plugin.json');
     $paths = [
         $native['skills'],
+        $native['apps'],
         $native['mcpServers'],
         $native['interface']['composerIcon'],
         $native['interface']['logo'],
@@ -115,14 +134,15 @@ it('keeps every native manifest path relative to and inside the plugin package',
 it('ships a discoverable OpnForm skill with the complete safety workflow', function () {
     $skillPath = opnformPluginPath('skills/opnform/SKILL.md');
     $skill = file_get_contents($skillPath);
+    $bundle = readOpnformSkillBundle();
 
     expect($skillPath)->toBeFile()
         ->and($skill)->toStartWith("---\n")
         ->and($skill)->toMatch('/\A---\nname: opnform\ndescription: .+\n---\n/s')
-        ->and($skill)->toContain(
+        ->and($bundle)->toContain(
             'opnform://schemas/agent-form-definition/v1',
             'validate_form_definition',
-            'draft_token',
+            'draft_handle',
             'preview_form_draft',
             'get_form_draft',
             'open_form_draft_in_editor',
@@ -136,23 +156,31 @@ it('ships a discoverable OpnForm skill with the complete safety workflow', funct
             'expected_version',
             'revision',
         )
-        ->and($skill)->toContain(
-            'Authenticated tools remain discoverable before the account is connected',
-            'Do not report that account tools are unavailable',
-            'Never launch another Codex or ChatGPT agent',
-            'run `codex exec`',
-            'OpnForm is not attached to the current conversation',
+        ->and($bundle)->toContain(
+            'Do not use shell, raw HTTP, another connector, or a recursive agent as a fallback',
             'Distinguish missing tools from missing authentication',
             'Enabling or selecting the plugin is not OAuth authentication',
-            'Settings → MCP servers → OpnForm → Authenticate',
-            'start a new conversation with OpnForm selected before the first message',
-            'may not hot-reload OAuth credentials',
-            'do not loop or claim the connection succeeded',
+            'start a new conversation with OpnForm selected',
+            'Do not loop on an OAuth challenge or claim that connection succeeded without a successful account-scoped result',
+            '`textarea` is not a valid type',
+            'do not create or patch after a validation failure',
+            '`quality_warnings`',
+            '`name` is always visible respondent-facing copy',
+            'Add placeholders only for useful examples or expected formats',
+            'Use a contextual action',
         )
         ->and($skill)->toContain('confirm_publish: true', 'confirm_trash: true')
         ->and($skill)->not->toContain('`confirm: true`')
+        ->and($skill)->not->toContain('draft_token', 'capability secret')
         ->and($skill)->toContain('Submission access is read-only')
-        ->and(substr_count($skill, "\n"))->toBeLessThan(500);
+        ->and($bundle)->toContain(
+            'describe a recoverable field error as a generic server error',
+            '`border_radius` is `none`, `small`, or `full`',
+        )
+        ->and(str_word_count($skill))->toBeLessThan(900)
+        ->and(opnformPluginPath('skills/opnform/references/form-authoring.md'))->toBeFile()
+        ->and(opnformPluginPath('skills/opnform/references/account-and-submissions.md'))->toBeFile()
+        ->and(opnformPluginPath('skills/opnform/references/connection-and-recovery.md'))->toBeFile();
 });
 
 it('declares the hosted OpnForm MCP dependency in native skill metadata', function () {
@@ -170,7 +198,7 @@ it('declares the hosted OpnForm MCP dependency in native skill metadata', functi
         );
 });
 
-it('contains valid JSON and no local endpoints or fabricated ChatGPT app IDs', function () {
+it('contains valid JSON, no local endpoints, and only the registered ChatGPT app ID', function () {
     $iterator = new RecursiveIteratorIterator(
         new RecursiveDirectoryIterator(opnformPluginPath(), FilesystemIterator::SKIP_DOTS),
     );
@@ -179,8 +207,11 @@ it('contains valid JSON and no local endpoints or fabricated ChatGPT app IDs', f
         $contents = file_get_contents($file->getPathname());
 
         expect($contents)
-            ->not->toMatch('~https?://(?:localhost|127(?:\.\d+){3}|\[?::1\]?)(?::\d+)?~i')
-            ->not->toContain('plugin_asdk_app');
+            ->not->toMatch('~https?://(?:localhost|127(?:\.\d+){3}|\[?::1\]?)(?::\d+)?~i');
+
+        if ($file->getFilename() !== '.app.json') {
+            expect($contents)->not->toContain('plugin_asdk_app');
+        }
 
         if ($file->getExtension() === 'json') {
             expect(fn () => json_decode($contents, true, flags: JSON_THROW_ON_ERROR))->not->toThrow(JsonException::class);
@@ -196,13 +227,73 @@ it('does not expose plugin package files from the monorepo root', function () {
 });
 
 it('teaches agents how to change presentation and media without repository inspection', function () {
+    $bundle = readOpnformSkillBundle();
+
+    expect($bundle)
+        ->toContain('opnform://schemas/agent-form-definition/v1')
+        ->toContain('opnform://reference/form-fields/v1')
+        ->toContain('before generating or materially changing fields, layout, presentation, or media')
+        ->toContain('In focused mode, every visible block is already one step')
+        ->toContain('attach an `image` object directly to that input or `nf-text` block')
+        ->toContain('Never persist localhost, private addresses, temporary tunnels');
+});
+
+it('teaches agents how to author and patch computed variables and display logic', function () {
+    $bundle = readOpnformSkillBundle();
+
+    expect($bundle)
+        ->toContain('A computed variable needs a unique `id` beginning with `cv_`')
+        ->toContain('`{budget} * 1.2`')
+        ->toContain('Use the referenced block type in `property_meta.type`, or `computed`')
+        ->toContain('`operators_by_reference_type`')
+        ->toContain('replace the complete `computed_variables` list through `set_form_values`')
+        ->toContain("clear a block's `logic`");
+});
+
+it('renders a guest preview automatically after creation and every draft change', function () {
     $skill = file_get_contents(opnformPluginPath('skills/opnform/SKILL.md'));
+    $server = file_get_contents(app_path('Mcp/Servers/OpnFormServer.php'));
+    $createTool = file_get_contents(app_path('Mcp/Tools/CreateFormDraftTool.php'));
+    $patchTool = file_get_contents(app_path('Mcp/Tools/PatchFormDraftTool.php'));
+    $previewTool = file_get_contents(app_path('Mcp/Tools/PreviewFormDraftTool.php'));
 
     expect($skill)
-        ->toContain('Re-read the field reference before changing presentation style, fields, layout, or media')
-        ->toContain('every visible block becomes one step automatically')
-        ->toContain('add an `image` object to that input or `nf-text` block')
-        ->toContain('Never persist localhost, private addresses, temporary tunnel domains');
+        ->toContain('Call `preview_form_draft` exactly once with that handle')
+        ->toContain('then call `preview_form_draft` exactly once')
+        ->and($server)
+        ->toContain('Create and patch are data-only')
+        ->toContain('call preview_form_draft exactly once')
+        ->and($createTool)
+        ->not->toContain('RendersApp')
+        ->and($patchTool)
+        ->not->toContain('RendersApp')
+        ->and($previewTool)
+        ->toContain('RendersApp(resource: FormDraftPreviewApp::class)');
+});
+
+it('guides the agent from guest preview to account save and explicit publication', function () {
+    $skill = file_get_contents(opnformPluginPath('skills/opnform/SKILL.md'));
+    $server = file_get_contents(app_path('Mcp/Servers/OpnFormServer.php'));
+    $createTool = file_get_contents(app_path('Mcp/Tools/CreateFormDraftTool.php'));
+    $patchTool = file_get_contents(app_path('Mcp/Tools/PatchFormDraftTool.php'));
+    $previewTool = file_get_contents(app_path('Mcp/Tools/PreviewFormDraftTool.php'));
+
+    expect($skill)
+        ->toContain('ask exactly one question offering two choices')
+        ->toContain('A status-only response is incomplete')
+        ->toContain('saved as an unpublished draft')
+        ->toContain('Asking is not confirmation')
+        ->and($server)
+        ->toContain('ask whether to modify or save')
+        ->toContain('require explicit confirmation')
+        ->and($createTool)
+        ->toContain('data-only')
+        ->and($patchTool)
+        ->toContain('data-only')
+        ->and($previewTool)
+        ->toContain("'next_step'")
+        ->toContain('modify the draft again or save it')
+        ->toContain('Do not request OAuth unless the user chooses save');
 });
 
 it('renders a flattened and hardened form preview frame', function () {
@@ -215,16 +306,21 @@ it('renders a flattened and hardened form preview frame', function () {
         ->toContain('/widgets/iframeResize.min.js')
         ->toContain('checkOrigin: [previewUrl.origin]')
         ->toContain('scrolling: false')
-        ->toContain('const canvasWidth = 1280')
         ->toContain('const focusedHeight = 720')
-        ->toContain('const defaultZoom = 0.8')
-        ->toContain('availableWidth / canvasWidth')
+        ->toContain('const zoomLevels = [0.75, 0.85, 1]')
+        ->toContain('const defaultZoomIndex = 1')
+        ->toContain('availableWidth / zoom')
         ->toContain('new ResizeObserver(applyPreviewLayout).observe(previewViewport)')
         ->toContain("sizeHeight: presentationStyle !== 'focused'")
+        ->toContain("app.callServerTool('open_form_draft_in_editor'")
+        ->toContain('currentPreviewUrl !== nextPreviewUrl')
+        ->toContain('Ask ChatGPT to refresh this preview.')
         ->toContain('aria-label="Preview zoom"')
         ->toContain('sandbox="allow-forms allow-modals allow-popups allow-scripts allow-same-origin"')
         ->toContain('referrerpolicy="no-referrer"')
         ->not->toContain('class="card"')
         ->not->toContain('border-radius: 10px')
+        ->not->toContain('window.openai')
+        ->not->toContain('openai:set_globals')
         ->not->toContain('allow-top-navigation');
 });

@@ -58,18 +58,23 @@ if (config('app.self_hosted')) {
 Route::middleware('mcp.enabled')->group(function () {
     Route::prefix('agent-drafts')->name('agent-drafts.')->middleware('mcp.guest-drafts')->group(function () {
         Route::get('/preview/{draft}', [AgentFormDraftController::class, 'preview'])
-            ->middleware(['signed', 'throttle:60,1'])
+            ->withoutMiddleware('throttle:100,1')
+            ->middleware(['signed', 'throttle:agent-draft-preview'])
             ->name('preview');
         Route::post('/handoff/consume', [AgentFormDraftController::class, 'consume'])
-            ->middleware('throttle:30,1')
+            ->withoutMiddleware('throttle:100,1')
+            ->middleware('throttle:agent-draft-handoff')
             ->name('handoff.consume');
         Route::get('/editor/current', [AgentFormDraftController::class, 'current'])
-            ->middleware('throttle:120,1')
+            ->withoutMiddleware('throttle:100,1')
+            ->middleware('throttle:agent-draft-editor')
             ->name('editor.current');
         Route::put('/editor/current', [AgentFormDraftController::class, 'replace'])
-            ->middleware('throttle:120,1')
+            ->withoutMiddleware('throttle:100,1')
+            ->middleware('throttle:agent-draft-editor')
             ->name('editor.replace');
         Route::post('/editor/claim', [AgentFormDraftController::class, 'claim'])
+            ->withoutMiddleware('throttle:100,1')
             ->middleware(['auth.multi', 'throttle:30,1'])
             ->name('editor.claim');
     });
@@ -130,9 +135,9 @@ Route::group(['middleware' => 'auth.multi'], function () {
             Route::post('/portal', [\App\Http\Controllers\Settings\LicenseController::class, 'portal'])->name('portal');
         });
 
-        Route::prefix('/mcp')->name('mcp.')->middleware(['self-hosted'])->group(function () {
+        Route::prefix('/mcp')->name('mcp.')->group(function () {
             Route::get('/', [McpSettingsController::class, 'show'])->name('show');
-            Route::put('/', [McpSettingsController::class, 'update'])->name('update');
+            Route::put('/', [McpSettingsController::class, 'update'])->middleware(['self-hosted'])->name('update');
         });
 
         Route::prefix('/two-factor')->name('two-factor.')->group(function () {
@@ -241,6 +246,7 @@ Route::group(['middleware' => 'auth.multi'], function () {
 
         Route::prefix('forms')->name('forms.')->group(function () {
             Route::post('/', [FormController::class, 'store'])->name('store');
+            Route::post('/{form}/validate-definition', [FormController::class, 'validateDefinition'])->name('validate-definition');
             Route::post('/{form}/workspace/{workspace}', [FormController::class, 'updateWorkspace'])->name('workspace.update');
             Route::put('/{form}', [FormController::class, 'update'])->name('update');
             Route::delete('/{form}', [FormController::class, 'destroy'])->name('destroy');
@@ -259,7 +265,7 @@ Route::group(['middleware' => 'auth.multi'], function () {
                     ->middleware('throttle:export-status')
                     ->name('export.status');
                 Route::get('/file/{filename}', [FormSubmissionController::class, 'submissionFile'])
-                    ->middleware('signed')
+                    ->middleware('signed:relative')
                     ->withoutMiddleware(['auth.multi'])
                     ->name('file');
                 Route::delete('/{submission_id}', [FormSubmissionController::class, 'destroy'])->name('destroy');
@@ -345,7 +351,7 @@ Route::group(['middleware' => 'auth.multi'], function () {
                 '/{form}/pdf-templates/{pdfTemplate}/submissions/{submission_id}/download',
                 [PdfGenerateController::class, 'downloadByTemplate']
             )
-                ->middleware('signed')
+                ->middleware('signed:relative')
                 ->withoutMiddleware(['auth.multi'])
                 ->name('pdf-templates.download-submission');
 
@@ -354,7 +360,7 @@ Route::group(['middleware' => 'auth.multi'], function () {
                 '/{form}/pdf-templates/{pdfTemplate}/preview',
                 [PdfGenerateController::class, 'previewBySignature']
             )
-                ->middleware('signed')
+                ->middleware('signed:relative')
                 ->withoutMiddleware(['auth.multi'])
                 ->name('pdf-templates.preview-signed');
         });
@@ -432,7 +438,8 @@ Route::group(['middleware' => 'guest:api'], function () {
     Route::post('login', [LoginController::class, 'login'])->name('login');
     Route::post('register', [RegisterController::class, 'register']);
 
-    Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+    Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEmail'])
+        ->middleware('throttle:password-reset');
     Route::post('password/reset', [ResetPasswordController::class, 'reset']);
 
     Route::post('email/verify/{user}', [VerificationController::class, 'verify'])->name('verification.verify');
@@ -559,7 +566,7 @@ Route::post(
 )->middleware('throttle:public-uploads')->name('upload-file');
 
 Route::get('local/temp/{path}', function (Request $request, string $path) {
-    if (!$request->hasValidSignature()) {
+    if (!$request->hasValidRelativeSignature()) {
         abort(401);
     }
 

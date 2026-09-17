@@ -30,14 +30,132 @@ it('exposes the OpnForm MCP endpoint and initializes the protocol', function () 
         ->assertJsonPath('result.serverInfo.version', '1.0.0')
         ->assertJsonPath('result.protocolVersion', '2025-06-18')
         ->assertJsonPath('result.instructions', function (string $instructions): bool {
-            $discoveryInstructions = substr($instructions, 0, 512);
+            $discoveryInstructions = substr($instructions, 0, 1024);
 
-            return str_contains($discoveryInstructions, 'Never invoke Codex or ChatGPT recursively')
-                && str_contains($discoveryInstructions, 'OpnForm selected before the first message')
-                && str_contains($discoveryInstructions, 'account, form, and submission tools require OAuth')
-                && str_contains($discoveryInstructions, 'Enabling the plugin is not OAuth authentication')
-                && str_contains($discoveryInstructions, 'start a new conversation after OAuth');
+            return str_contains($discoveryInstructions, 'natural request to create a form as a guest workflow')
+                && str_contains($discoveryInstructions, 'Create and patch are data-only')
+                && str_contains($discoveryInstructions, 'preview_form_draft exactly once')
+                && str_contains($discoveryInstructions, 'Use sanitized HTML, never Markdown')
+                && str_contains($discoveryInstructions, 'respondent-facing label in sentence case')
+                && str_contains($discoveryInstructions, 'Correct relevant quality_warnings before persistence')
+                && str_contains($discoveryInstructions, 'OAuth is only for saving or managing account forms');
         });
+});
+
+it('advertises explicit safety annotations for every MCP tool', function () {
+    $response = $this->postJson('/mcp', [
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/list',
+        'params' => [],
+    ], [
+        'Accept' => 'application/json, text/event-stream',
+    ])->assertOk();
+
+    $actual = collect($response->json('result.tools'))
+        ->mapWithKeys(fn (array $tool): array => [
+            $tool['name'] => collect($tool['annotations'])->only([
+                'readOnlyHint',
+                'destructiveHint',
+                'openWorldHint',
+            ])->all(),
+        ])
+        ->sortKeys()
+        ->all();
+
+    $readOnly = [
+        'get_account_context',
+        'get_form',
+        'get_form_draft',
+        'get_submission',
+        'get_submission_export',
+        'get_submission_stats',
+        'get_workspace',
+        'list_forms',
+        'list_submissions',
+        'list_workspaces',
+        'preview_form_draft',
+        'validate_form_definition',
+    ];
+    $writes = [
+        'create_form_draft',
+        'create_form_in_account',
+        'export_submissions',
+        'open_form_draft_in_editor',
+    ];
+    $destructivePrivateWrites = [
+        'patch_form_draft',
+    ];
+    $destructiveOpenWorldWrites = [
+        'trash_form',
+        'update_form',
+    ];
+
+    $expected = collect($readOnly)
+        ->mapWithKeys(fn (string $name): array => [$name => [
+            'readOnlyHint' => true,
+            'destructiveHint' => false,
+            'openWorldHint' => false,
+        ]])
+        ->merge(collect($writes)->mapWithKeys(fn (string $name): array => [$name => [
+            'readOnlyHint' => false,
+            'destructiveHint' => false,
+            'openWorldHint' => false,
+        ]]))
+        ->merge(collect($destructivePrivateWrites)->mapWithKeys(fn (string $name): array => [$name => [
+            'readOnlyHint' => false,
+            'destructiveHint' => true,
+            'openWorldHint' => false,
+        ]]))
+        ->merge(collect($destructiveOpenWorldWrites)->mapWithKeys(fn (string $name): array => [$name => [
+            'readOnlyHint' => false,
+            'destructiveHint' => true,
+            'openWorldHint' => true,
+        ]]))
+        ->put('publish_form', [
+            'readOnlyHint' => false,
+            'destructiveHint' => false,
+            'openWorldHint' => true,
+        ])
+        ->sortKeys()
+        ->all();
+
+    expect($actual)->toBe($expected);
+});
+
+it('publishes an output schema for every MCP tool', function () {
+    $response = $this->postJson('/mcp', [
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/list',
+        'params' => [],
+    ], [
+        'Accept' => 'application/json, text/event-stream',
+    ])->assertOk();
+
+    foreach ($response->json('result.tools') as $tool) {
+        expect($tool['outputSchema'] ?? null)
+            ->toBeArray("Tool [{$tool['name']}] must declare an output schema.")
+            ->and($tool['outputSchema']['type'] ?? null)->toBe('object')
+            ->and($tool['outputSchema']['properties'] ?? null)->toBeArray()
+            ->not->toBeEmpty();
+    }
+});
+
+it('mirrors every tool auth policy in metadata for ChatGPT compatibility', function () {
+    $response = $this->postJson('/mcp', [
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/list',
+        'params' => [],
+    ], [
+        'Accept' => 'application/json, text/event-stream',
+    ])->assertOk();
+
+    foreach ($response->json('result.tools') as $tool) {
+        expect($tool['_meta']['securitySchemes'] ?? null)
+            ->toBe($tool['securitySchemes'] ?? null, "Tool [{$tool['name']}] must mirror securitySchemes in _meta.");
+    }
 });
 
 it('registers a permissive dedicated rate limiter for MCP traffic', function () {
@@ -53,7 +171,13 @@ it('publishes the versioned form definition schema', function () {
         ->assertOk()
         ->assertSee('agent-form-definition/v1.json')
         ->assertSee('schema_version')
-        ->assertSee('properties');
+        ->assertSee('properties')
+        ->assertSee('computedVariable')
+        ->assertSee('displayLogic')
+        ->assertSee('property_meta')
+        ->assertSee('Respondent-facing label')
+        ->assertSee('sanitized HTML fragment')
+        ->assertSee('never Markdown');
 });
 
 it('keeps every normalized top-level key represented in the published schema', function () {
@@ -76,9 +200,43 @@ it('publishes the canonical form field catalog', function () {
         ->assertSee('payment')
         ->assertSee('presentation_modes')
         ->assertSee('focused')
+        ->assertSee('authoring_guidelines')
+        ->assertSee('polished respondent-facing form')
+        ->assertSee('sentence case')
+        ->assertSee('natural words and spaces')
+        ->assertSee('sanitized HTML')
+        ->assertSee('never Markdown')
         ->assertSee('block_media')
         ->assertSee('trycloudflare.com')
         ->assertSee('save');
+});
+
+it('returns authoring quality warnings with their persistence severity', function () {
+    OpnFormServer::tool(ValidateFormDefinitionTool::class, [
+        'definition' => [
+            'title' => 'Contact form',
+            'properties' => [
+                ['name' => 'name', 'type' => 'text'],
+                ['name' => 'email', 'type' => 'email'],
+                ['name' => 'message', 'type' => 'text'],
+            ],
+        ],
+    ])
+        ->assertOk()
+        ->assertStructuredContent(
+            fn (AssertableJson $json) => $json
+            ->where('valid', true)
+            ->where('schema_version', 1)
+            ->has('definition')
+            ->has(
+                'quality_warnings',
+                fn (AssertableJson $warnings) => $warnings
+                ->each(
+                    fn (AssertableJson $warning) => $warning
+                    ->hasAll(['code', 'message', 'path', 'blocking'])
+                )
+            )
+        );
 });
 
 it('requires public durable HTTPS URLs for agent-provided media', function () {
@@ -114,6 +272,32 @@ it('documents block media in the published form definition schema', function () 
         ->and($schema['$defs']['blockImage']['properties']['url']['type'])->toBe(['string', 'null'])
         ->and($schema['$defs']['blockImage']['properties']['layout']['enum'])
         ->toContain('right-split', 'background');
+});
+
+it('documents computed variables and recursive display logic in the published resources', function () {
+    $schema = app(AgentFormDefinition::class)->jsonSchema();
+    $catalog = \App\Service\Forms\AgentFormFieldCatalog::reference();
+
+    expect($schema['properties']['computed_variables']['items']['$ref'])
+        ->toBe('#/$defs/computedVariable')
+        ->and($schema['$defs']['computedVariable']['required'])
+        ->toBe(['id', 'name', 'formula'])
+        ->and($schema['$defs']['computedVariable']['properties']['id']['pattern'])
+        ->toBe('^cv_')
+        ->and($schema['$defs']['block']['properties']['logic']['anyOf'][0]['$ref'])
+        ->toBe('#/$defs/displayLogic')
+        ->and($schema['$defs']['logicConditionGroup']['properties']['children']['items']['$ref'])
+        ->toBe('#/$defs/logicCondition')
+        ->and($schema['$defs']['logicConditionValue']['properties']['property_meta']['properties']['type']['enum'])
+        ->toContain('number', 'computed')
+        ->and($schema['$defs']['logicConditionValue']['properties']['operator']['enum'])
+        ->toContain('greater_than', 'contains', 'is_empty')
+        ->and($catalog['computed_variables']['example']['formula'])
+        ->toBe('{budget} * 1.2')
+        ->and($catalog['display_logic']['operators_by_reference_type']['computed'])
+        ->toContain('greater_than', 'equals')
+        ->and($catalog['display_logic']['example']['conditions']['children'][0]['value']['property_meta'])
+        ->toBe(['id' => 'cv_priority_score', 'type' => 'computed']);
 });
 
 it('applies the public media URL policy to block images', function () {

@@ -114,6 +114,53 @@ it('returns a tool-level OAuth challenge when an account tool is called anonymou
         ->toContain('error_description="Connect your OpnForm account to continue"');
 });
 
+it('creates and previews a guest form over HTTP without an OAuth challenge', function () {
+    $createResponse = $this->postJson('/mcp', [
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'create_form_draft',
+            'arguments' => [
+                'definition' => [
+                    'title' => 'Contact form',
+                    'properties' => [
+                        ['name' => 'Name', 'type' => 'text', 'required' => true],
+                        ['name' => 'Email', 'type' => 'email', 'required' => true],
+                        ['name' => 'Subject', 'type' => 'text'],
+                        ['name' => 'Message', 'type' => 'text', 'multi_lines' => true],
+                    ],
+                ],
+            ],
+        ],
+    ], mcpHeaders())->assertOk()
+        ->assertJsonPath('result.isError', false)
+        ->assertJsonMissingPath('result._meta.mcp/www_authenticate');
+
+    $draftHandle = $createResponse->json('result.structuredContent.draft_handle');
+
+    expect($draftHandle)->toBeString()->toHaveLength(43);
+
+    $this->postJson('/mcp', [
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'preview_form_draft',
+            'arguments' => [
+                'draft_handle' => $draftHandle,
+            ],
+        ],
+    ], mcpHeaders())->assertOk()
+        ->assertJsonPath('result.isError', false)
+        ->assertJsonPath('result.structuredContent.draft.definition.title', 'Contact form')
+        ->assertJsonMissingPath('result.structuredContent.preview_url')
+        ->assertJsonPath('result._meta.preview_url', fn (string $url): bool => str_starts_with($url, 'https://opnform.test/'))
+        ->assertJsonPath('result.structuredContent.draft_handle', $draftHandle)
+        ->assertJsonMissingPath('result.structuredContent.editor_url')
+        ->assertJsonMissingPath('result._meta.mcp/www_authenticate');
+});
+
 it('does not treat a normal OpnForm web session as MCP authentication', function () {
     $user = User::factory()->create();
 
