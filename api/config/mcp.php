@@ -6,6 +6,7 @@ $redirectDomains = array_values(array_filter(array_map(
         'https://chatgpt.com',
         'https://chat.openai.com',
         'https://claude.ai',
+        'https://www.cursor.com',
         'http://localhost',
         'http://127.0.0.1',
         'http://[::1]',

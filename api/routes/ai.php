@@ -27,6 +27,6 @@ if (config('oauth.enabled', false)) {
 
 Route::middleware('mcp.enabled')->group(function () {
     Mcp::web('/mcp', OpnFormServer::class)
-        ->middleware(['auth.mcp.optional', 'throttle:mcp', 'observe.mcp']);
+        ->middleware(['auth.mcp.optional', 'throttle:mcp', 'observe.mcp', 'mcp.oauth.challenge']);
 });
 Mcp::local('opnform', OpnFormServer::class);
