@@ -22,6 +22,7 @@ use App\Http\Middleware\EnsureSelfHostedInstance;
 use App\Http\Middleware\ConsumeMcpOAuthLoginTicket;
 use App\Http\Middleware\AuthenticateOptionalMcpOAuth;
 use App\Http\Middleware\RecordMcpUsage;
+use App\Http\Middleware\PromoteMcpOAuthChallenge;
 use App\Http\Middleware\ThrottleFormSummary;
 use App\Http\Middleware\EnsureMcpEnabled;
 use App\Http\Middleware\EnsureMcpGuestDraftsEnabled;
@@ -37,6 +38,8 @@ class Kernel extends HttpKernel
      */
     protected $middleware = [
         //         \App\Http\Middleware\TrustHosts::class,
+        // Outermost so this header wins over Laravel MCP's generic 401 challenge.
+        PromoteMcpOAuthChallenge::class,
         \App\Http\Middleware\TrustProxies::class,
         DevCorsMiddleware::class,
         \Illuminate\Http\Middleware\HandleCors::class,
@@ -143,6 +146,7 @@ class Kernel extends HttpKernel
         'auth.multi' => \App\Http\Middleware\AuthenticateWithJwtOrSanctum::class,
         'auth.mcp.optional' => AuthenticateOptionalMcpOAuth::class,
         'observe.mcp' => RecordMcpUsage::class,
+        'mcp.oauth.challenge' => PromoteMcpOAuthChallenge::class,
         'mcp.enabled' => EnsureMcpEnabled::class,
         'mcp.guest-drafts' => EnsureMcpGuestDraftsEnabled::class,
         'throttle.form-summary' => ThrottleFormSummary::class,

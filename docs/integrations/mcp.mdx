@@ -184,7 +184,7 @@ On self-hosted instances, replace `https://opnform.com` with your frontend URL. 
 
 Form, workspace, and submission tools use OAuth. The MCP client discovers OpnForm's authorization metadata, opens the OpnForm consent screen, and uses authorization code flow with PKCE `S256`. You never paste an OpnForm password or access token into a conversation.
 
-On OpnForm Cloud, guest form creation and preview remain available before authentication. On self-hosted instances, guest draft creation is unavailable. Schema resources, the field catalog, and `validate_form_definition` remain available before authentication because they do not read or store account data.
+On OpnForm Cloud, guest form creation and preview remain available before authentication. On self-hosted instances, guest draft creation is unavailable. Schema resources, the field catalog, and `validate_form_definition` remain available before authentication because they do not read or store account data. Creating or listing forms requires OAuth: Cursor (or another MCP client) should open a browser to this instance so you can sign in and approve access. You do not create a Google or GitHub OAuth app for that flow.
 
 <Note>
 After authenticating a Codex connection, start a new conversation with OpnForm selected so the MCP client loads the stored credential.
@@ -300,7 +300,9 @@ This switch appears only on self-hosted instances. Verify that `APP_URL` and `FR
 </Accordion>
 
 <Accordion title="The client connects but account tools require authentication">
-Complete the OAuth flow from the MCP client. Guest drafts on OpnForm Cloud do not authenticate your account automatically.
+Enabling MCP only exposes the server. Complete the OAuth flow from the MCP client. Guest drafts on OpnForm Cloud do not authenticate your account automatically. You do not create a Google, GitHub, or other identity-provider app. OpnForm uses Laravel Passport: the client should open a browser to your instance, you sign in with your existing OpnForm account, then approve access.
+
+Dynamic client registration is not a completed login. If the client shows connected after a register call but never opens `/oauth/authorize`, disconnect and authenticate again, then finish the browser consent screen. For local Codex testing, start a new conversation after authentication.
 </Accordion>
 
 <Accordion title="OAuth succeeds but the conversation still appears unauthenticated">
@@ -317,6 +319,10 @@ Check the client callback against `MCP_OAUTH_REDIRECT_DOMAINS` and `MCP_OAUTH_CU
 
 <Accordion title="The client cannot reach a self-hosted MCP server">
 Confirm that your `/mcp` endpoint is reachable from outside your private network, that your reverse proxy allows streamable HTTP responses, and that no firewall or authentication proxy blocks MCP discovery requests.
+
+On the standard Docker ingress, `/mcp`, `/oauth/`, and `/.well-known/oauth-*` must reach the API. `GET /mcp/authorize` stays on the frontend for the consent screen.
+
+If another reverse proxy (Zoraxy, Caddy, Traefik, Cloudflare) sits in front of the ingress, forward those paths without blocking hidden URLs, and disable response buffering for `/mcp`. Set `TRUSTED_PROXIES` in `api/.env` to that proxy's IP so Laravel honors `X-Forwarded-Proto`.
 </Accordion>
 </AccordionGroup>
 

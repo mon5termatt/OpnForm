@@ -92,10 +92,10 @@ before setting up SSO.
 
 ### If a reverse proxy is in front of OpnForm
 
-When Caddy, Traefik, Cloudflare, or another reverse proxy forwards traffic to
+When Caddy, Traefik, Zoraxy, Cloudflare, or another reverse proxy forwards traffic to
 the Docker ingress, set `TRUSTED_PROXIES` in `api/.env` to the IP address or
 CIDR range from which that proxy connects to the ingress. This lets OpnForm use
-the real client IP for OIDC and other rate limits.
+the real client IP for OIDC, MCP OAuth, and other rate limits.
 
 ```bash
 # Example only: use the actual address or CIDR of your own reverse proxy.
@@ -106,6 +106,13 @@ Leave it empty when users connect directly to the Docker ingress. Do not set
 it to `*`: doing so would make a direct client-provided forwarding header
 trustworthy and allow rate-limit bypasses. Recreate the API container after
 changing it.
+
+If the Docker host `resolv.conf` has a `search` domain (common on Proxmox),
+wildcard DNS for that domain can steal container names such as
+`opnform-client`. The Compose file sets `dns_search: [.]` so lookups stay on
+the Docker network. Nginx upstreams also use trailing-dot names
+(`opnform-client.`, `opnform-api.`). If the ingress is unhealthy and logs show
+timeouts to a Cloudflare or public IP on port 3000, this is the cause.
 
 ### Initial Setup
 

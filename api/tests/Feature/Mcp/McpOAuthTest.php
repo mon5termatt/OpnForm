@@ -93,7 +93,7 @@ it('requires S256 PKCE for every delegated authorization request', function (arr
     ]],
 ]);
 
-it('returns a tool-level OAuth challenge when an account tool is called anonymously', function () {
+it('returns an HTTP OAuth challenge when an account tool is called anonymously', function () {
     $response = $this->postJson('/mcp', [
         'jsonrpc' => '2.0',
         'id' => 1,
@@ -102,7 +102,8 @@ it('returns a tool-level OAuth challenge when an account tool is called anonymou
             'name' => 'list_forms',
             'arguments' => [],
         ],
-    ], mcpHeaders())->assertOk()
+    ], mcpHeaders())->assertUnauthorized()
+        ->assertHeader('WWW-Authenticate')
         ->assertJsonPath('result.isError', true);
 
     $challenge = $response->json('result._meta.mcp/www_authenticate.0');
@@ -111,7 +112,8 @@ it('returns a tool-level OAuth challenge when an account tool is called anonymou
         ->toContain('Bearer resource_metadata="'.route('mcp.oauth.protected-resource.nested', ['path' => 'mcp']).'"')
         ->toContain('scope="mcp:use"')
         ->toContain('error="insufficient_scope"')
-        ->toContain('error_description="Connect your OpnForm account to continue"');
+        ->toContain('error_description="Connect your OpnForm account to continue"')
+        ->and($response->headers->get('WWW-Authenticate'))->toBe($challenge);
 });
 
 it('creates and previews a guest form over HTTP without an OAuth challenge', function () {
@@ -172,7 +174,8 @@ it('does not treat a normal OpnForm web session as MCP authentication', function
             'name' => 'get_account_context',
             'arguments' => [],
         ],
-    ], mcpHeaders())->assertOk()
+    ], mcpHeaders())->assertUnauthorized()
+        ->assertHeader('WWW-Authenticate')
         ->assertJsonPath('result.isError', true)
         ->assertJsonPath('result._meta.mcp/www_authenticate.0', fn (string $challenge) => str_contains(
             $challenge,
@@ -202,6 +205,18 @@ it('uses a scoped MCP bearer token for account tool calls', function () {
 
 it('dynamically registers public PKCE clients only for allowed redirects', function () {
     $this->postJson('/oauth/register', [
+        'client_name' => 'Cursor',
+        'redirect_uris' => ['https://www.cursor.com/api/oauth/mcp/callback'],
+    ])->assertCreated()
+        ->assertJsonPath('redirect_uris.0', 'https://www.cursor.com/api/oauth/mcp/callback');
+
+    $this->postJson('/oauth/register', [
+        'client_name' => 'Cursor desktop',
+        'redirect_uris' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+    ])->assertCreated()
+        ->assertJsonPath('redirect_uris.0', 'cursor://anysphere.cursor-mcp/oauth/callback');
+
+    $this->postJson('/oauth/register', [
         'client_name' => 'ChatGPT',
         'redirect_uris' => ['https://chatgpt.com/connector/oauth/local-test'],
     ])->assertCreated()
@@ -209,7 +224,7 @@ it('dynamically registers public PKCE clients only for allowed redirects', funct
         ->assertJsonPath('scope', 'mcp:use')
         ->assertJsonPath('redirect_uris.0', 'https://chatgpt.com/connector/oauth/local-test');
 
-    $this->assertDatabaseCount('oauth_clients', 1);
+    $this->assertDatabaseCount('oauth_clients', 3);
 
     $this->postJson('/oauth/register', [
         'client_name' => 'Untrusted client',
@@ -217,7 +232,7 @@ it('dynamically registers public PKCE clients only for allowed redirects', funct
     ])->assertBadRequest()
         ->assertJsonPath('error', 'invalid_redirect_uri');
 
-    $this->assertDatabaseCount('oauth_clients', 1);
+    $this->assertDatabaseCount('oauth_clients', 3);
 
     $this->postJson('/oauth/register', [
         'client_name' => 'Delimiter injection',
@@ -225,7 +240,7 @@ it('dynamically registers public PKCE clients only for allowed redirects', funct
     ])->assertBadRequest()
         ->assertJsonPath('error', 'invalid_redirect_uri');
 
-    $this->assertDatabaseCount('oauth_clients', 1);
+    $this->assertDatabaseCount('oauth_clients', 3);
 
     $this->postJson('/oauth/register', [
         'client_name' => 'Loopback userinfo injection',
@@ -233,7 +248,7 @@ it('dynamically registers public PKCE clients only for allowed redirects', funct
     ])->assertBadRequest()
         ->assertJsonPath('error', 'invalid_redirect_uri');
 
-    $this->assertDatabaseCount('oauth_clients', 1);
+    $this->assertDatabaseCount('oauth_clients', 3);
 });
 
 it('rejects PKCE methods other than S256', function () {

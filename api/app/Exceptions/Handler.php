@@ -46,7 +46,19 @@ class Handler extends ExceptionHandler
             return redirect(app(\App\Service\OAuth\McpOAuthSessionService::class)->beginAuthorization($request));
         }
 
-        return response()->json(['message' => $exception->getMessage()], 401);
+        $response = response()->json(['message' => $exception->getMessage()], 401);
+
+        if ($request->is('mcp')) {
+            $response->headers->set(
+                'WWW-Authenticate',
+                sprintf(
+                    'Bearer resource_metadata="%s", scope="mcp:use"',
+                    route('mcp.oauth.protected-resource.nested', ['path' => 'mcp'])
+                )
+            );
+        }
+
+        return $response;
     }
 
     public function report(Throwable $exception)

@@ -23,6 +23,8 @@ services:
       PHP_POST_MAX_SIZE: "64M"
     env_file:
       - ./api/.env
+    dns_search:
+      - .
     depends_on:
       db:
         condition: service_healthy
@@ -73,6 +75,8 @@ services:
     container_name: opnform-client
     env_file:
       - ./client/.env
+    dns_search:
+      - .
     depends_on:
       api:
         condition: service_healthy
@@ -87,6 +91,8 @@ services:
   redis:
     image: redis:7
     container_name: opnform-redis
+    dns_search:
+      - .
     volumes:
       - redis-data:/data
     healthcheck:
@@ -97,6 +103,8 @@ services:
   db:
     image: postgres:16
     container_name: opnform-db
+    dns_search:
+      - .
     environment:
       POSTGRES_DB: ${DB_DATABASE:-forge}
       POSTGRES_USER: ${DB_USERNAME:-forge}
@@ -117,17 +125,19 @@ services:
       - 80:80
     environment:
       - NGINX_MAX_BODY_SIZE=64m
+    dns_search:
+      - .
     depends_on:
       api:
         condition: service_started
       ui:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "nginx -t && curl -f http://localhost/ || exit 1"]
+      test: ["CMD-SHELL", "nginx -t && curl -fsS --max-time 8 http://127.0.0.1/ >/dev/null || exit 1"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 20s
 
 volumes:
   postgres-data:
