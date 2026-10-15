@@ -119,6 +119,7 @@ Route::group(['middleware' => 'auth.multi'], function () {
         Route::patch('/password', [PasswordController::class, 'update']);
 
         Route::prefix('/tokens')->name('tokens.')->group(function () {
+            Route::get('/abilities', [\App\Http\Controllers\Settings\TokenController::class, 'abilities'])->name('abilities');
             Route::get('/', [TokenController::class, 'index'])->name('index');
             Route::post('/', [TokenController::class, 'store'])->name('store');
             Route::delete('{token}', [TokenController::class, 'destroy'])->name('destroy');
@@ -277,7 +278,7 @@ Route::group(['middleware' => 'auth.multi'], function () {
                 '/{form}/regenerate-link/{option}',
                 [FormController::class, 'regenerateLink']
             )
-                ->where('option', '(uuid|slug)')
+                ->where('option', '(uuid|slug|custom)')
                 ->name('regenerate-link');
             Route::post(
                 '/{form}/duplicate',
@@ -491,12 +492,6 @@ Route::prefix('forms')->name('forms.')->group(function () {
         Route::post('{form}/answer', [PublicFormController::class, 'answer'])->name('answer')->middleware(HandlePrecognitiveRequests::class);
         Route::get('{form}/stripe-connect/get-account', [FormPaymentController::class, 'getAccount'])->name('stripe-connect.get-account')->middleware(HandlePrecognitiveRequests::class);
         Route::post('{form}/stripe-connect/payment-intent', [FormPaymentController::class, 'createIntent'])->name('stripe-connect.create-intent')->middleware(HandlePrecognitiveRequests::class);
-
-        // Form content endpoints (user lists, relation lists etc.)
-        Route::get(
-            '{form}/users',
-            [PublicFormController::class, 'listUsers']
-        )->name('users.index');
     });
 
     // File uploads
@@ -575,3 +570,6 @@ Route::get('local/temp/{path}', function (Request $request, string $path) {
 
 Route::get('caddy/ask-certificate/{secret?}', [\App\Http\Controllers\CaddyController::class, 'ask'])
     ->name('caddy.ask')->middleware(\App\Http\Middleware\CaddyRequestMiddleware::class);
+
+Route::post('/aws/sns/ses/integration-events', \App\Http\Controllers\Integrations\SesIntegrationFeedbackController::class)
+    ->withoutMiddleware(['throttle:100,1', 'throttle:150,1', 'throttle:api']);

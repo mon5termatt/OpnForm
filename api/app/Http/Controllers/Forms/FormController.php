@@ -9,14 +9,15 @@ use App\Http\Requests\UploadAssetRequest;
 use App\Http\Resources\FormListResource;
 use App\Http\Resources\FormResource;
 use App\Models\Forms\Form;
-use App\Models\Forms\FormSubmission;
 use App\Models\Version;
 use App\Models\Workspace;
 use App\Notifications\Forms\MobileEditorEmail;
+use App\Rules\CustomSlugRule;
 use App\Service\Billing\Feature;
 use App\Service\Forms\FormCleaner;
 use App\Service\Forms\FormCreationService;
 use App\Service\Forms\FormDataNormalizer;
+use App\Service\Forms\FormListStatsLoader;
 use App\Service\Forms\FormStructureValidator;
 use App\Service\Forms\FormUpdateService;
 use App\Service\Storage\FileUploadPathService;
@@ -44,7 +45,7 @@ class FormController extends Controller
         $this->formCleaner = new FormCleaner();
     }
 
-    public function index(Request $request, Workspace $workspace)
+    public function index(Request $request, Workspace $workspace, FormListStatsLoader $statsLoader)
     {
         $this->authorize('ownsWorkspace', $workspace);
         $this->authorize('viewAny', Form::class);
@@ -67,11 +68,12 @@ class FormController extends Controller
                 'updated_at',
             ])
             ->with(['workspace'])
-            ->withCount(['submissions as submissions_count' => fn ($q) => $q->where('status', FormSubmission::STATUS_COMPLETED)])
-            ->withTotalViews()
             ->orderByDesc('updated_at')
+            ->orderByDesc('id')
             ->paginate($perPage)
             ->withQueryString();
+
+        $statsLoader->load($forms->getCollection());
 
         return FormListResource::collection($forms);
     }
@@ -238,11 +240,18 @@ class FormController extends Controller
         ]);
     }
 
-    public function regenerateLink(Form $form, $option)
+    public function regenerateLink(Request $request, Form $form, $option)
     {
         $this->authorize('update', $form);
 
-        if ($option == 'slug') {
+        if ($option == 'custom') {
+            abort_unless(config('app.self_hosted'), 403, 'Custom form URLs are only available on self-hosted instances.');
+
+            $validated = $request->validate([
+                'slug' => ['required', 'string', 'max:100', new CustomSlugRule($form)],
+            ]);
+            $form->slug = $validated['slug'];
+        } elseif ($option == 'slug') {
             $form->generateSlug();
         } elseif ($option == 'uuid') {
             $form->slug = Str::uuid();
