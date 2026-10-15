@@ -12,6 +12,8 @@ FOSS users are not a conversion funnel. They chose free software on purpose.
 
 ## An open letter to OpnForm
 
+> Posted 12 July 2026. As of this writing: **95 days** with no course correction.
+
 Please do the right thing. Stop enshittifying a FOSS project.
 
 People who want FOSS want **free**. Free as in freedom, and free as in not renting back the right to run software they already host. Self-hosters keep the AGPL ecosystem alive. They deploy your code, find the sharp edges, and fix things in production. Treating them like leakage is how open projects lose their communities.
